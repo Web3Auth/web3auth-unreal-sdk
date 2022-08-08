@@ -3,6 +3,15 @@
 
 #include "Web3Auth.h"
 
+#define PLATFORM_ANDROID 1
+#define USE_ANDROID_JNI 1
+
+#if PLATFORM_ANDROID
+	#include "../../../Launch/Public/Android/AndroidJNI.h"
+	#include "Android/AndroidApplication.h"
+#endif
+
+
 // Sets default values
 AWeb3Auth::AWeb3Auth()
 {
@@ -94,6 +103,10 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 
 	FString url = web3AuthOptions.sdkUrl + "/" + path + "#" + base64;
 	FPlatformProcess::LaunchURL(*url, NULL, NULL);
+
+#if PLATFORM_ANDROID
+	JNIEnv* Env = FAndroidApplication::GetJavaEnv(true);
+#endif
 }
 
 void AWeb3Auth::processLogin(FLoginParams loginParams) {

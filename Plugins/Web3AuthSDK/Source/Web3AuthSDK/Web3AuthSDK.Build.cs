@@ -7,7 +7,13 @@ public class Web3AuthSDK : ModuleRules
 	public Web3AuthSDK(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		
+
+
+		if (Target.Platform == UnrealTargetPlatform.Android)
+		{
+			PrivateDependencyModuleNames.Add("Launch");
+		}
+
 		PublicIncludePaths.AddRange(
 			new string[] {
 				// ... add public include paths required here ...
@@ -54,5 +60,6 @@ public class Web3AuthSDK : ModuleRules
 				// ... add any modules that your module loads dynamically here ...
 			}
 			);
+
 	}
 }
