@@ -3,8 +3,8 @@
 
 #include "Web3Auth.h"
 
-#define PLATFORM_ANDROID 1
-#define USE_ANDROID_JNI 1
+//#define PLATFORM_ANDROID 1
+//#define USE_ANDROID_JNI 1
 
 #if PLATFORM_ANDROID
 	#include "../../../Launch/Public/Android/AndroidJNI.h"
@@ -17,7 +17,6 @@ AWeb3Auth::AWeb3Auth()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
 }
 
 void AWeb3Auth::setOptions(FWeb3AuthOptions options) {
@@ -47,8 +46,10 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	if (web3AuthOptions.redirectUrl != "")
 		initParams->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
 
+#if !PLATFORM_ANDROID
 	FString redirectUrl = startLocalWebServer();
 	initParams->SetStringField("redirectUrl", redirectUrl);
+#endif
 
 	if (web3AuthOptions.whiteLabel.name != "") {
 		FString output;
@@ -102,10 +103,18 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	FString base64 = FBase64::Encode(jsonOutput);
 
 	FString url = web3AuthOptions.sdkUrl + "/" + path + "#" + base64;
-	FPlatformProcess::LaunchURL(*url, NULL, NULL);
 
 #if PLATFORM_ANDROID
-	JNIEnv* Env = FAndroidApplication::GetJavaEnv(true);
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true)) {
+		jstring jurl = Env->NewStringUTF(TCHAR_TO_UTF8(*url));
+		jclass jbrowserViewClass = FAndroidApplication::FindJavaClass("com/web3auth/unity/android/BrowserView");
+
+
+		static jmethodID jlaunchUrl = FJavaWrapper::FindStaticMethod(Env, jbrowserViewClass, "launchUrl", "(Landroid/app/Activity;Ljava/lang/String;)V", false);
+		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, jlaunchUrl, FJavaWrapper::GameActivityThis, jurl);
+	}
+#else
+	FPlatformProcess::LaunchURL(*url, NULL, NULL);
 #endif
 }
 

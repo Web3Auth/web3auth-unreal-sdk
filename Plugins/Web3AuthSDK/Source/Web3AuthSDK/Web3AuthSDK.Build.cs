@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
+using System.IO;
 
 public class Web3AuthSDK : ModuleRules
 {
@@ -12,6 +13,7 @@ public class Web3AuthSDK : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.Android)
 		{
 			PrivateDependencyModuleNames.Add("Launch");
+			AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(ModuleDirectory, "Web3AuthSDK_Android.xml"));
 		}
 
 		PublicIncludePaths.AddRange(
