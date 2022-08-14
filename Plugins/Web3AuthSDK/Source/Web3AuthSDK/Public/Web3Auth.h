@@ -20,6 +20,12 @@
 #include "Runtime/Online/HTTPServer/Public/HttpServerResponse.h"
 
 
+#if PLATFORM_ANDROID
+#include "../../../Launch/Public/Android/AndroidJNI.h"
+#include "Android/AndroidApplication.h"
+#endif
+
+
 #include "Web3Auth.generated.h"
 
 
@@ -509,12 +515,15 @@ class WEB3AUTHSDK_API AWeb3Auth : public AActor
 {
 	GENERATED_BODY()
 
-		FWeb3AuthOptions web3AuthOptions;
+	FWeb3AuthOptions web3AuthOptions;
 
 	TQueue<TFunction< void()>> queue;
 
 	TSharedPtr<IHttpRouter> httpRouter;
 	TArray<TPair<TSharedPtr<IHttpRouter>, FHttpRouteHandle>> httpRoutes;
+
+	static FOnLogin loginEvent;
+	static FOnLogout logoutEvent;
 
 protected:
 	// Called when the game starts or when spawned
@@ -542,19 +551,13 @@ public:
 		void proccessLogout(FString redirectUrl = "", FString appState = "");
 
 	UFUNCTION(BlueprintCallable)
-		void setResultUrl(FString code);
-
-	UPROPERTY()
-		FOnLogin loginEvent;
-
-	UPROPERTY()
-		FOnLogout logoutEvent;
+		static void setResultUrl(FString code);
 
 	UFUNCTION(BlueprintCallable, Category = "Web3Auth")
-		void setLoginEvent(FOnLogin _event);
+		static void setLoginEvent(FOnLogin _event);
 
 	UFUNCTION(BlueprintCallable, Category = "Web3Auth")
-		void setLogoutEvent(FOnLogout _event);
+		static void setLogoutEvent(FOnLogout _event);
 
 
 
@@ -574,6 +577,10 @@ private:
 
 	template <typename StructType>
 	void GetJsonStringFromStruct(StructType FilledStruct, FString& StringOutput);
+
+#if PLATFORM_ANDROID
+	void CallJniVoidMethod(JNIEnv* Env, const jclass Class, jmethodID Method, ...);
+#endif
 
 	FString startLocalWebServer();
 

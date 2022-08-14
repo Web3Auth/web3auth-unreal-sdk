@@ -14,19 +14,18 @@ https://docs.unrealengine.com/en-US/SharingAndReleasing/Mobile/UnrealPluginLangu
     <copyDir src="$S(PluginDir)/Private/Android/Java/values" dst="$S(BuildDir)/res/values" />
   </prebuildCopies>
 
-
   <!-- Optional additions to proguard -->
   <proguardAdditions>
     <insert>
-      <!-- Disabling class obfuscation 
+      <!-- Disabling class obfuscation -->
       -dontwarn com.Plugins.**
       -keep class com.Plugins.** { *; }
       -keep interface com.Plugins.** { *; }
-      -keep public class com.web3auth.unreal.android.** { public protected *; }
+      -keep public class com.Plugins.Web3AuthSDK.** { public protected *; }
 
       -dontwarn androidx.**
       -keep class androidx.** { *; }
-      -keep interface androidx.** { *; }-->
+      -keep interface androidx.** { *; }
 
     </insert>
   </proguardAdditions>
@@ -43,6 +42,31 @@ https://docs.unrealengine.com/en-US/SharingAndReleasing/Mobile/UnrealPluginLangu
     <!-- Adding your own Permission -->
     <addPermission android:name="com.android.permission.READ_EXTERNAL_STORAGE"/>
     <addPermission android:name="com.android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+    
+    <!-- update the GameActivity activity -->
+    <loopElements tag="activity">
+        <setStringFromAttribute result="activityName" tag="$" name="android:name"/>
+        <setBoolIsEqual result="bGameActivity" arg1="$S(activityName)" arg2="com.epicgames.unreal.GameActivity"/>
+        <if condition="bGameActivity">
+            <true>
+                <addElements tag="$">
+                  <intent-filter>
+                    <action android:name="android.intent.action.VIEW" />
+
+                    <category android:name="android.intent.category.DEFAULT" />
+                    <category android:name="android.intent.category.BROWSABLE" />
+
+                    <data
+                        android:host="com.torus.Web3AuthUnity"
+                        android:pathPattern="/*"
+                        android:pathPrefix="/auth"
+                        android:scheme="torusapp" />
+                  </intent-filter>
+                </addElements>
+            </true>
+        </if>
+    </loopElements>
 
   </androidManifestUpdates>
 
@@ -80,5 +104,29 @@ https://docs.unrealengine.com/en-US/SharingAndReleasing/Mobile/UnrealPluginLangu
     </insert>
   </buildGradleAdditions>
 
+  <gameActivityImportAdditions>
+      <insert>
+      </insert>
+  </gameActivityImportAdditions>
+  <gameActivityClassAdditions>
+      <insert>
+          public static native void onDeepLink(String uri);
+      </insert>
+  </gameActivityClassAdditions>
+
+  <gameActivityOnResumeAdditions>
+      <insert>
+          Log.debug("on resume intent called!");
+
+          try {
+            Intent intent = getIntent();
+            Log.debug("hello" + intent.getData().toString());
+
+            onDeepLink(intent.getData().getFragment());
+          } catch (Exception ex) {
+            Log.debug(ex.getMessage());
+          }
+      </insert>
+  </gameActivityOnResumeAdditions>
 
 </root>

@@ -1,4 +1,4 @@
-package com.web3auth.unreal.android;
+package com.Plugins.Web3AuthSDK;
 
 import android.app.Activity;
 import android.content.Intent;

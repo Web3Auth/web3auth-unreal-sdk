@@ -6,11 +6,33 @@
 //#define PLATFORM_ANDROID 1
 //#define USE_ANDROID_JNI 1
 
-#if PLATFORM_ANDROID
-	#include "../../../Launch/Public/Android/AndroidJNI.h"
-	#include "Android/AndroidApplication.h"
-#endif
+FOnLogin AWeb3Auth::loginEvent;
+FOnLogout AWeb3Auth::logoutEvent;
 
+#if PLATFORM_ANDROID
+JNI_METHOD void Java_com_epicgames_unreal_GameActivity_onDeepLink(JNIEnv* env, jclass clazz, jstring uri) {
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true)) {
+		const char* UTFString = Env->GetStringUTFChars(uri, 0);
+
+		FString result = FString(UTF8_TO_TCHAR(UTFString));
+		UE_LOG(LogTemp, Warning, TEXT("redirect %s"), *result);
+
+		AWeb3Auth::setResultUrl(result);
+
+		Env->ReleaseStringUTFChars(uri, UTFString);
+		Env->DeleteLocalRef(uri);
+	}
+}
+
+void AWeb3Auth::CallJniVoidMethod(JNIEnv* Env, const jclass Class, jmethodID Method, ...) {
+	va_list Args;
+	va_start(Args, Method);
+	Env->CallStaticVoidMethodV(Class, Method, Args);
+	va_end(Args);
+
+	Env->DeleteLocalRef(Class);
+}
+#endif
 
 // Sets default values
 AWeb3Auth::AWeb3Auth()
@@ -107,11 +129,11 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 #if PLATFORM_ANDROID
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true)) {
 		jstring jurl = Env->NewStringUTF(TCHAR_TO_UTF8(*url));
-		jclass jbrowserViewClass = FAndroidApplication::FindJavaClass("com/web3auth/unity/android/BrowserView");
 
-
+		jclass jbrowserViewClass = FAndroidApplication::FindJavaClass("com/Plugins/Web3AuthSDK/BrowserView");
 		static jmethodID jlaunchUrl = FJavaWrapper::FindStaticMethod(Env, jbrowserViewClass, "launchUrl", "(Landroid/app/Activity;Ljava/lang/String;)V", false);
-		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, jlaunchUrl, FJavaWrapper::GameActivityThis, jurl);
+
+		CallJniVoidMethod(Env, jbrowserViewClass, jlaunchUrl, FJavaWrapper::GameActivityThis, jurl);
 	}
 #else
 	FPlatformProcess::LaunchURL(*url, NULL, NULL);
@@ -177,10 +199,16 @@ void AWeb3Auth::setResultUrl(FString hash) {
 	}
 
 	if (web3AuthResponse.privKey.IsEmpty() || web3AuthResponse.privKey == "0000000000000000000000000000000000000000000000000000000000000000") {
-		logoutEvent.ExecuteIfBound();
+		AsyncTask(ENamedThreads::GameThread, [=]() {
+			AWeb3Auth::logoutEvent.ExecuteIfBound();
+		});	
+		//AWeb3Auth::logoutEvent.ExecuteIfBound();
 	}
 	else {
-		loginEvent.ExecuteIfBound(web3AuthResponse);
+		AsyncTask(ENamedThreads::GameThread, [=]() {
+			AWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
+		});
+		//AWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
 		
 	}
 
