@@ -116,11 +116,8 @@ https://docs.unrealengine.com/en-US/SharingAndReleasing/Mobile/UnrealPluginLangu
 
   <gameActivityOnResumeAdditions>
       <insert>
-          Log.debug("on resume intent called!");
-
           try {
             Intent intent = getIntent();
-            Log.debug("hello" + intent.getData().toString());
 
             onDeepLink(intent.getData().getFragment());
           } catch (Exception ex) {

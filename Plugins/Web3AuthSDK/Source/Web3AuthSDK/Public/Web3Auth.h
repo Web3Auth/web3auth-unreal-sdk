@@ -517,8 +517,6 @@ class WEB3AUTHSDK_API AWeb3Auth : public AActor
 
 	FWeb3AuthOptions web3AuthOptions;
 
-	TQueue<TFunction< void()>> queue;
-
 	TSharedPtr<IHttpRouter> httpRouter;
 	TArray<TPair<TSharedPtr<IHttpRouter>, FHttpRouteHandle>> httpRoutes;
 

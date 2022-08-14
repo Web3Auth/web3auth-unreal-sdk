@@ -135,6 +135,8 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 
 		CallJniVoidMethod(Env, jbrowserViewClass, jlaunchUrl, FJavaWrapper::GameActivityThis, jurl);
 	}
+#elseif PLATFORN_IOS
+	[launchUrl:TCHAR_TO_ANSI(*url)];
 #else
 	FPlatformProcess::LaunchURL(*url, NULL, NULL);
 #endif
@@ -202,16 +204,16 @@ void AWeb3Auth::setResultUrl(FString hash) {
 		AsyncTask(ENamedThreads::GameThread, [=]() {
 			AWeb3Auth::logoutEvent.ExecuteIfBound();
 		});	
-		//AWeb3Auth::logoutEvent.ExecuteIfBound();
 	}
 	else {
 		AsyncTask(ENamedThreads::GameThread, [=]() {
 			AWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
 		});
-		//AWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
-		
 	}
 
+#if PLATFORN_IOS
+		[dismiss];
+#endif
 }
 
 template <typename StructType>
@@ -256,10 +258,7 @@ bool AWeb3Auth::requestAuthCallback(const FHttpServerRequest& Request, const FHt
 	FString code = Request.QueryParams["code"];
 
 	if (!code.IsEmpty()) {
-		queue.Enqueue([=]
-			{
-				setResultUrl(code);
-			});
+		AWeb3Auth::setResultUrl(code);
 	}
 
 	TUniquePtr<FHttpServerResponse> response = FHttpServerResponse::Create(TEXT("OK"), TEXT("text/html"));
@@ -352,14 +351,6 @@ void AWeb3Auth::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void AWeb3Auth::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-
-	while (!queue.IsEmpty()) {
-		TFunction< void()> f;
-
-		queue.Dequeue(f);
-		f();
-	}
 }
 
 AWeb3Auth::~AWeb3Auth() {
