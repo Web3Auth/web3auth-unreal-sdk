@@ -135,7 +135,7 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 
 		CallJniVoidMethod(Env, jbrowserViewClass, jlaunchUrl, FJavaWrapper::GameActivityThis, jurl);
 	}
-#elseif PLATFORN_IOS
+#elseif PLATFORM_IOS
 	[launchUrl:TCHAR_TO_ANSI(*url)];
 #else
 	FPlatformProcess::LaunchURL(*url, NULL, NULL);
@@ -211,7 +211,7 @@ void AWeb3Auth::setResultUrl(FString hash) {
 		});
 	}
 
-#if PLATFORN_IOS
+#if PLATFORM_IOS
 		[dismiss];
 #endif
 }
