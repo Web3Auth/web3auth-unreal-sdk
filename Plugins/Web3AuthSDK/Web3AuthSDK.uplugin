@@ -18,7 +18,8 @@
 		{
 			"Name": "Web3AuthSDK",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": [ "Android", "Win64", "Mac" ]
 		}
 	]
 }

@@ -3,12 +3,42 @@
 
 #include "Web3Auth.h"
 
+//#define PLATFORM_ANDROID 1
+//#define USE_ANDROID_JNI 1
+
+FOnLogin AWeb3Auth::loginEvent;
+FOnLogout AWeb3Auth::logoutEvent;
+
+#if PLATFORM_ANDROID
+JNI_METHOD void Java_com_epicgames_unreal_GameActivity_onDeepLink(JNIEnv* env, jclass clazz, jstring uri) {
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true)) {
+		const char* UTFString = Env->GetStringUTFChars(uri, 0);
+
+		FString result = FString(UTF8_TO_TCHAR(UTFString));
+		UE_LOG(LogTemp, Warning, TEXT("redirect %s"), *result);
+
+		AWeb3Auth::setResultUrl(result);
+
+		Env->ReleaseStringUTFChars(uri, UTFString);
+		Env->DeleteLocalRef(uri);
+	}
+}
+
+void AWeb3Auth::CallJniVoidMethod(JNIEnv* Env, const jclass Class, jmethodID Method, ...) {
+	va_list Args;
+	va_start(Args, Method);
+	Env->CallStaticVoidMethodV(Class, Method, Args);
+	va_end(Args);
+
+	Env->DeleteLocalRef(Class);
+}
+#endif
+
 // Sets default values
 AWeb3Auth::AWeb3Auth()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
 }
 
 void AWeb3Auth::setOptions(FWeb3AuthOptions options) {
@@ -38,8 +68,10 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	if (web3AuthOptions.redirectUrl != "")
 		initParams->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
 
+#if !PLATFORM_ANDROID
 	FString redirectUrl = startLocalWebServer();
 	initParams->SetStringField("redirectUrl", redirectUrl);
+#endif
 
 	if (web3AuthOptions.whiteLabel.name != "") {
 		FString output;
@@ -93,7 +125,21 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	FString base64 = FBase64::Encode(jsonOutput);
 
 	FString url = web3AuthOptions.sdkUrl + "/" + path + "#" + base64;
+
+#if PLATFORM_ANDROID
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true)) {
+		jstring jurl = Env->NewStringUTF(TCHAR_TO_UTF8(*url));
+
+		jclass jbrowserViewClass = FAndroidApplication::FindJavaClass("com/Plugins/Web3AuthSDK/BrowserView");
+		static jmethodID jlaunchUrl = FJavaWrapper::FindStaticMethod(Env, jbrowserViewClass, "launchUrl", "(Landroid/app/Activity;Ljava/lang/String;)V", false);
+
+		CallJniVoidMethod(Env, jbrowserViewClass, jlaunchUrl, FJavaWrapper::GameActivityThis, jurl);
+	}
+#elseif PLATFORM_IOS
+	[launchUrl:TCHAR_TO_ANSI(*url)];
+#else
 	FPlatformProcess::LaunchURL(*url, NULL, NULL);
+#endif
 }
 
 void AWeb3Auth::processLogin(FLoginParams loginParams) {
@@ -155,13 +201,19 @@ void AWeb3Auth::setResultUrl(FString hash) {
 	}
 
 	if (web3AuthResponse.privKey.IsEmpty() || web3AuthResponse.privKey == "0000000000000000000000000000000000000000000000000000000000000000") {
-		logoutEvent.ExecuteIfBound();
+		AsyncTask(ENamedThreads::GameThread, [=]() {
+			AWeb3Auth::logoutEvent.ExecuteIfBound();
+		});	
 	}
 	else {
-		loginEvent.ExecuteIfBound(web3AuthResponse);
-		
+		AsyncTask(ENamedThreads::GameThread, [=]() {
+			AWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
+		});
 	}
 
+#if PLATFORM_IOS
+		[dismiss];
+#endif
 }
 
 template <typename StructType>
@@ -206,10 +258,7 @@ bool AWeb3Auth::requestAuthCallback(const FHttpServerRequest& Request, const FHt
 	FString code = Request.QueryParams["code"];
 
 	if (!code.IsEmpty()) {
-		queue.Enqueue([=]
-			{
-				setResultUrl(code);
-			});
+		AWeb3Auth::setResultUrl(code);
 	}
 
 	TUniquePtr<FHttpServerResponse> response = FHttpServerResponse::Create(TEXT("OK"), TEXT("text/html"));
@@ -302,14 +351,6 @@ void AWeb3Auth::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void AWeb3Auth::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-
-	while (!queue.IsEmpty()) {
-		TFunction< void()> f;
-
-		queue.Dequeue(f);
-		f();
-	}
 }
 
 AWeb3Auth::~AWeb3Auth() {
