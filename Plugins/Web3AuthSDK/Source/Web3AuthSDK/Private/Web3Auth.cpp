@@ -211,6 +211,10 @@ void AWeb3Auth::setResultUrl(FString hash) {
 			AWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
 		});
 	}
+
+#if PLATFORM_IOS
+		[dismiss];
+#endif
 }
 
 template <typename StructType>
