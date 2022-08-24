@@ -2,6 +2,7 @@
 
 using UnrealBuildTool;
 using System.IO;
+using System.Collections.Generic;
 
 public class Web3AuthSDK : ModuleRules
 {
@@ -9,12 +10,36 @@ public class Web3AuthSDK : ModuleRules
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
-
 		if (Target.Platform == UnrealTargetPlatform.Android)
 		{
 			PrivateDependencyModuleNames.Add("Launch");
 			AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(ModuleDirectory, "Web3AuthSDK_Android.xml"));
 		}
+        
+        if (Target.Platform == UnrealTargetPlatform.IOS)
+        {
+            PrivateDependencyModuleNames.AddRange(new string[]
+                {
+                    "Launch"
+                }
+            );
+            
+            AdditionalPropertiesForReceipt.Add("IOSPlugin", Path.Combine(ModuleDirectory, "Web3AuthSDK_iOS.xml"));
+
+            //------------------- .h--------------------
+            PrivateIncludePaths.AddRange(new string[] { Path.Combine(ModuleDirectory, "Private", "IOS") });
+        
+            
+            PublicFrameworks.AddRange(
+                    new string[]
+                    {
+                        "UIKit",
+                        "Foundation",
+                        "SafariServices",
+                        "AuthenticationServices"
+                    }
+             );
+        }
 
 		PublicIncludePaths.AddRange(
 			new string[] {

@@ -567,8 +567,10 @@ public:
 		return output;
 	}
 
-
-
+    #if PLATFORM_IOS
+    static void callBackFromWebAuthenticateIOS(NSString* sResult);
+    #endif
+    
 	~AWeb3Auth();
 private:
 	void request(FString  path, FLoginParams* loginParams, TSharedPtr<FJsonObject> extraParam);
