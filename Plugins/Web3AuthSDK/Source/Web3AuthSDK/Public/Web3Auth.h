@@ -373,8 +373,8 @@ struct FUserInfo
 {
 	GENERATED_BODY()
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString email;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FString email;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString name;
@@ -399,6 +399,9 @@ struct FUserInfo
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString idToken;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FString oAuthIdToken;
 
 	FUserInfo() {};
 
