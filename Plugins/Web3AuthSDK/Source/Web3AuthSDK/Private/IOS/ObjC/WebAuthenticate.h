@@ -8,7 +8,7 @@
 
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 130000
 @interface WebAuthenticate: NSObject<ASWebAuthenticationPresentationContextProviding>
-+ (WebAuthenticate*)Singleton;
-+ (void)launchUrl: (const char*)url;
++(WebAuthenticate*)Singleton;
+-(void)launchUrl: (const char*)url;
 @end
 #endif
