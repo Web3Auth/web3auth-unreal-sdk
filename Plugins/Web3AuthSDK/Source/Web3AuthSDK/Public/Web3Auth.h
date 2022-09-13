@@ -91,6 +91,13 @@ enum class FTypeOfLogin : uint8
 };
 
 UENUM(BlueprintType)
+enum class FCurve : uint8
+{
+    SECP256K1,
+    ED25519
+};
+
+UENUM(BlueprintType)
 enum class FMFALevel : uint8
 {
 	DEFAULT,
@@ -111,7 +118,7 @@ struct WEB3AUTHSDK_API FExtraLoginOptions
 {
 	GENERATED_BODY()
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString domain;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -268,7 +275,7 @@ struct FLoginConfigItem
 {
 	GENERATED_BODY()
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString verifier;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -325,7 +332,7 @@ struct FLoginParams
 {
 	GENERATED_BODY()
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString loginProvider;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -342,6 +349,9 @@ struct FLoginParams
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FMFALevel mfaLevel;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FCurve curve;
 
 	FLoginParams() {};
 
@@ -373,7 +383,7 @@ struct FUserInfo
 {
 	GENERATED_BODY()
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString email;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -400,6 +410,12 @@ struct FUserInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString idToken;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FString oAuthIdToken;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FString oAuthAccessToken;
+
 	FUserInfo() {};
 
 };
@@ -411,7 +427,7 @@ struct FWhiteLabelData
 {
 	GENERATED_BODY()
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString name;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -448,7 +464,7 @@ struct FWeb3AuthOptions
 {
 	GENERATED_BODY()
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString clientId;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -486,7 +502,7 @@ struct FWeb3AuthResponse
 {
 	GENERATED_BODY()
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString privKey;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -557,17 +573,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Web3Auth")
 		static void setLogoutEvent(FOnLogout _event);
 
-
-
 	UFUNCTION(BlueprintCallable)
 		static FString Web3AuthResponseToJsonString(FWeb3AuthResponse response) {
-		FString output;
-		FJsonObjectConverter::UStructToJsonObjectString(FWeb3AuthResponse::StaticStruct(), &response, output, 0, 0);
+			FString output;
+			FJsonObjectConverter::UStructToJsonObjectString(FWeb3AuthResponse::StaticStruct(), &response, output, 0, 0);
 
-		return output;
-	}
-
-
+			return output;
+		}
 
 	~AWeb3Auth();
 private:
