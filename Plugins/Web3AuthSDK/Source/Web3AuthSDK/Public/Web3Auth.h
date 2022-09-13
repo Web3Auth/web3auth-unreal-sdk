@@ -383,13 +383,8 @@ struct FUserInfo
 {
 	GENERATED_BODY()
 
-<<<<<<< HEAD
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString email;
-=======
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
         FString email;
->>>>>>> 039b396f685d31ee8b9290568c103f80ee7a9a0f
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString name;
