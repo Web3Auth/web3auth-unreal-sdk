@@ -37,18 +37,18 @@ To install or integrate Web3Auth Unreal SDK, clone/download the repository to yo
 *    Copy `Plugins/Web3AuthSDK` folder to  `<Your-Project-Path>/Plugins` directory. 
 *    Enable Web3AuthSDK plugin from Unreal Editor 5 settings `Edit →  Plugins → All Plugins → Web3AuthSDK` 
 
-![](/Docs/Images/1.png)
+![](/Docs/Images/5.png)
 
 *   Restart the Editor
 *   After restart, add Web3Auth actor class to the game level.
 
-![](/Docs/Images/2.png)
+![](/Docs/Images/4.png)
 
 ### Blueprints
 
 The following is the graph to set Web3Auth actor configuration. The graph currently uses string values to add parameters to blueprint blocks, but you can connect the values coming from different UI components. See more in [Try Sample Level](#) section.
 
-![](https://33333.cdn.cke-cs.com/kSW7V9NHUXugvhoQeFaf/images/3eedff0ebcf6840d91670957628a4da4b4c7dbc1f0a18e69.png)
+![](/Docs/Images/8.png)
 
 ### Android
 
@@ -85,12 +85,12 @@ To add redirect URI in iOS configuration, you just have to add the redirect URI 
 ```
 
 *   Paste the above string with updated schema into `Edit → Project Settings → IOS → Extra Plist Data`
-![](/Docs/Images/4.png)
+![](/Docs/Images/2.png)
 
 ## Try Sample Level
 
  * Open 'Sample' level from plugin directory `Plugins →  Web3AuthSDK -→ Web3AuthSDK Content → Sample`
-![](/Docs/Images/5.png)
+![](/Docs/Images/1.png)
 
  * Run Sample level from editor's toolbar menu
 ![](/Docs/Images/6.png)
