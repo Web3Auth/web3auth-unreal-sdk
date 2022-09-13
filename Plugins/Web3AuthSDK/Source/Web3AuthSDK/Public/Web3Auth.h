@@ -412,9 +412,6 @@ struct FUserInfo
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
         FString oAuthIdToken;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString oAuthIdToken;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString oAuthAccessToken;
