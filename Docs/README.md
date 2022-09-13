@@ -37,12 +37,12 @@ To install or integrate Web3Auth Unreal SDK, clone/download the repository to yo
 *    Copy `Plugins/Web3AuthSDK` folder to  `<Your-Project-Path>/Plugins` directory. 
 *    Enable Web3AuthSDK plugin from Unreal Editor 5 settings `Edit →  Plugins → All Plugins → Web3AuthSDK` 
 
-![](https://33333.cdn.cke-cs.com/kSW7V9NHUXugvhoQeFaf/images/f93c0e3cc394f4e7faefad953ac00bf8654ecd0fc5263409.png)
+![](/Docs/Images/1.png)
 
 *   Restart the Editor
 *   After restart, add Web3Auth actor class to the game level.
 
-![](https://33333.cdn.cke-cs.com/kSW7V9NHUXugvhoQeFaf/images/3f2ae68dd07e1a6f6e65eb179c22e7427fbda57698c7acdd.png)
+![](/Docs/Images/2.png)
 
 ### Blueprints
 
@@ -58,6 +58,8 @@ Setup android sdk and android-ndk for unreal editor for more details please see 
 * To add redirect URI into android app, open file `<Your-Project-Path>/Plugins/Web3AuthSDK/Source/Web3AuthSDK_Android.xml`
 
 *  Find the `<androidManifestUpdates>` tag and inside there will a `<data>` tag element. Replace the exisitng redirect URI with your own which you have registered on your Web3Auth Dashboard
+
+![](/Docs/Images/3.png)
 
 ### IOS 
 
@@ -83,15 +85,15 @@ To add redirect URI in iOS configuration, you just have to add the redirect URI 
 ```
 
 *   Paste the above string with updated schema into `Edit → Project Settings → IOS → Extra Plist Data`
-![](https://33333.cdn.cke-cs.com/kSW7V9NHUXugvhoQeFaf/images/2ddc973fa270566d8f950d1f4bade8a120004db9bd47d92e.png)
+![](/Docs/Images/4.png)
 
 ## Try Sample Level
 
- * Open 'Sample' level from plugin directory `Plugins →  Web3AuthSDK -→ Web3AuthSDK Content/S → Sample`
-![](https://33333.cdn.cke-cs.com/kSW7V9NHUXugvhoQeFaf/images/0aea53dae92b26e0234bb861bb1c1b195c5a3c50a6e7964b.png)
+ * Open 'Sample' level from plugin directory `Plugins →  Web3AuthSDK -→ Web3AuthSDK Content → Sample`
+![](/Docs/Images/5.png)
 
  * Run Sample level from editor's toolbar menu
-![](https://33333.cdn.cke-cs.com/kSW7V9NHUXugvhoQeFaf/images/48b9be2f4976253629ba034af8f48f918f0d991ca7f86459.png)
+![](/Docs/Images/6.png)
 
  * To see the blueprint graph Open `AuthInterface` widget from `Web3Auth Content` directory and Switch to graph mode.
 
@@ -100,7 +102,7 @@ To add redirect URI in iOS configuration, you just have to add the redirect URI 
 * Select item from `Select Platform` menu from toolbar and select the respective device and click on `Package Content`
 
 
-![](https://33333.cdn.cke-cs.com/kSW7V9NHUXugvhoQeFaf/images/28a6229ae6ce86bcc21ea82a16a703d6a8238a4f8335039f.png)
+![](/Docs/Images/7.png)
 
 
 
