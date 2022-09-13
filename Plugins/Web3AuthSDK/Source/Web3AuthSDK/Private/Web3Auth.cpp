@@ -3,8 +3,9 @@
 
 #include "Web3Auth.h"
 
-//#define PLATFORM_ANDROID 1
-//#define USE_ANDROID_JNI 1
+#if PLATFORM_IOS
+#include "IOS/ObjC/WebAuthenticate.h"
+#endif
 
 FOnLogin AWeb3Auth::loginEvent;
 FOnLogout AWeb3Auth::logoutEvent;
@@ -68,7 +69,7 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	if (web3AuthOptions.redirectUrl != "")
 		initParams->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
 
-#if !PLATFORM_ANDROID
+#if !PLATFORM_ANDROID && !PLATFORM_IOS
 	FString redirectUrl = startLocalWebServer();
 	initParams->SetStringField("redirectUrl", redirectUrl);
 #endif
@@ -135,8 +136,8 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 
 		CallJniVoidMethod(Env, jbrowserViewClass, jlaunchUrl, FJavaWrapper::GameActivityThis, jurl);
 	}
-#elseif PLATFORM_IOS
-	[launchUrl:TCHAR_TO_ANSI(*url)];
+#elif PLATFORM_IOS
+	[[WebAuthenticate Singleton] launchUrl:TCHAR_TO_ANSI(*url)];
 #else
 	FPlatformProcess::LaunchURL(*url, NULL, NULL);
 #endif
@@ -210,10 +211,6 @@ void AWeb3Auth::setResultUrl(FString hash) {
 			AWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
 		});
 	}
-
-#if PLATFORM_IOS
-		[dismiss];
-#endif
 }
 
 template <typename StructType>
@@ -253,8 +250,7 @@ FString AWeb3Auth::startLocalWebServer() {
 }
 
 
-bool AWeb3Auth::requestAuthCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete)
-{
+bool AWeb3Auth::requestAuthCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) {
 	FString code = Request.QueryParams["code"];
 
 	if (!code.IsEmpty()) {
@@ -328,16 +324,19 @@ void AWeb3Auth::setLogoutEvent(FOnLogout _event) {
 	logoutEvent = _event;
 }
 
+#if PLATFORM_IOS
+void AWeb3Auth::callBackFromWebAuthenticateIOS(NSString* sResult) {
+    FString result = FString(sResult);
+    AWeb3Auth::setResultUrl(result);
+}
+#endif
 
-void AWeb3Auth::BeginPlay()
-{
+void AWeb3Auth::BeginPlay() {
 	Super::BeginPlay();
-
 }
 
 
-void AWeb3Auth::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
+void AWeb3Auth::EndPlay(const EEndPlayReason::Type EndPlayReason) {
 	Super::EndPlay(EndPlayReason);
 
 	FHttpServerModule::Get().StopAllListeners();
@@ -348,12 +347,10 @@ void AWeb3Auth::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	httpRoutes.Empty();
 }
 
-void AWeb3Auth::Tick(float DeltaTime)
-{
+void AWeb3Auth::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 }
 
 AWeb3Auth::~AWeb3Auth() {
-	
 }
 

@@ -383,8 +383,13 @@ struct FUserInfo
 {
 	GENERATED_BODY()
 
+<<<<<<< HEAD
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString email;
+=======
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FString email;
+>>>>>>> 039b396f685d31ee8b9290568c103f80ee7a9a0f
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString name;
@@ -409,6 +414,9 @@ struct FUserInfo
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString idToken;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FString oAuthIdToken;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString oAuthIdToken;
@@ -575,12 +583,16 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		static FString Web3AuthResponseToJsonString(FWeb3AuthResponse response) {
-			FString output;
-			FJsonObjectConverter::UStructToJsonObjectString(FWeb3AuthResponse::StaticStruct(), &response, output, 0, 0);
+		FString output;
+		FJsonObjectConverter::UStructToJsonObjectString(FWeb3AuthResponse::StaticStruct(), &response, output, 0, 0);
 
-			return output;
-		}
+		return output;
+	}
 
+    #if PLATFORM_IOS
+    static void callBackFromWebAuthenticateIOS(NSString* sResult);
+    #endif
+    
 	~AWeb3Auth();
 private:
 	void request(FString  path, FLoginParams* loginParams, TSharedPtr<FJsonObject> extraParam);
