@@ -10,7 +10,9 @@
 #include "JsonUtilities.h"
 
 #include "Misc/Base64.h"
-
+#include "KeyStoreUtils.h"
+#include "ECCrypto.h"
+#include "Web3AuthApi.h"
 
 
 #include "Runtime/Online/HTTPServer/Public/HttpPath.h"
@@ -521,6 +523,25 @@ struct FWeb3AuthResponse
 
 };
 
+USTRUCT(BlueprintType)
+struct FShareMetaData
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadWrite)
+		FString iv;
+
+	UPROPERTY(BlueprintReadWrite)
+		FString ephemPublicKey;
+
+	UPROPERTY(BlueprintReadWrite)
+		FString ciphertext;
+
+	UPROPERTY(BlueprintReadWrite)
+		FString mac;
+};
+
 
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnLogin, FWeb3AuthResponse, response);
 DECLARE_DYNAMIC_DELEGATE(FOnLogout);
@@ -538,6 +559,12 @@ class WEB3AUTHSDK_API AWeb3Auth : public AActor
 
 	static FOnLogin loginEvent;
 	static FOnLogout logoutEvent;
+
+
+	static UKeyStoreUtils* keyStoreUtils;
+	static UECCrypto* crypto;
+
+	UWeb3AuthApi* web3AuthApi = UWeb3AuthApi::GetInstance();
 
 protected:
 	// Called when the game starts or when spawned
@@ -600,4 +627,7 @@ private:
 
 	bool requestAuthCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete);
 	bool requestCompleteCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete);
+
+	void authorizeSession();
+	void sessionTimeout();
 };

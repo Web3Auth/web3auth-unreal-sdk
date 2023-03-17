@@ -60,6 +60,7 @@ public class Web3AuthSDK : ModuleRules
 			{
 				"Core",
 				// ... add other public dependencies that you statically link with here ...
+				"OpenSSL"
 			}
 			);
 			
@@ -79,14 +80,33 @@ public class Web3AuthSDK : ModuleRules
 				"UMG"
 			}
 			);
-		
-		
-		DynamicallyLoadedModuleNames.AddRange(
+
+        if (Target.Platform == UnrealTargetPlatform.Win64)
+        {
+            PrivateDependencyModuleNames.Add("OpenSSL");
+
+            if (Target.LinkType == TargetLinkType.Monolithic)
+            {
+                PrivateDependencyModuleNames.Add("ws2_32");
+            }
+            else
+            {
+                PublicAdditionalLibraries.Add("ws2_32.lib");
+            }
+        }
+
+        DynamicallyLoadedModuleNames.AddRange(
 			new string[]
 			{
 				// ... add any modules that your module loads dynamically here ...
 			}
 			);
 
-	}
+        PublicDefinitions.AddRange(
+			new string[]
+			{
+            }
+        );
+
+    }
 }
