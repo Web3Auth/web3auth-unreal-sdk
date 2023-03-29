@@ -109,9 +109,15 @@ enum class FMFALevel : uint8
 UENUM(BlueprintType)
 enum class FNetwork : uint8
 {
-	MAINNET = 0, TESTNET = 1, CYAN = 2
+	MAINNET = 0, TESTNET = 1, CYAN = 2, AQUA = 3, CELESTE = 4
 };
 
+UENUM(BlueprintType)
+enum class FChainNamespace : uint8
+{
+    EIP555,
+    SOLANA
+};
 
 USTRUCT(BlueprintType)
 struct WEB3AUTHSDK_API FExtraLoginOptions
@@ -482,6 +488,11 @@ struct FWeb3AuthOptions
 	UPROPERTY(BlueprintReadWrite)
 		TMap<FString, FLoginConfigItem> loginConfig;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FChainNamespace chainNamespace;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FBool useCoreKitKey;
 
 	FWeb3AuthOptions() {};
 
@@ -492,6 +503,8 @@ struct FWeb3AuthOptions
 		network = other.network;
 		whiteLabel = other.whiteLabel;
 		loginConfig = other.loginConfig;
+		chainNamespace = other.chainNamespace;
+		useCoreKitKey = other.useCoreKitKey
 	}
 
 };
@@ -516,6 +529,12 @@ struct FWeb3AuthResponse
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FUserInfo userInfo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FString coreKitKey;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FString coreKitEd25519PrivKey;
 
 	FWeb3AuthResponse() {};
 

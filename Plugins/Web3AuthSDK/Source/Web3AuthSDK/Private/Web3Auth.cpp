@@ -63,6 +63,12 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 		case FNetwork::CYAN:
 			initParams->SetStringField("network", "cyan");
 			break;
+		case FNetwork::AQUA:
+        	initParams->SetStringField("network", "aqua");
+        	break;
+        case FNetwork::CELESTE:
+        	initParams->SetStringField("network", "celeste");
+        	break;
 
 	}
 
