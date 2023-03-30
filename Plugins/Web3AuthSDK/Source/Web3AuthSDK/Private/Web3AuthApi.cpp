@@ -18,14 +18,13 @@ UWeb3AuthApi* UWeb3AuthApi::GetInstance()
 void UWeb3AuthApi::AuthorizeSession(const FString& key, const TFunction<void(FStoreApiResponse)> callback)
 {
     TSharedRef<IHttpRequest> request = FHttpModule::Get().CreateRequest();
-    request->SetVerb(TEXT("GET"));
+    request->SetVerb(TEXT("POST"));
     request->SetURL(TEXT("https://broadcast-server.tor.us/store/get?key=" + key));
-    auto headers = request->GetAllHeaders();
-    for (auto header : headers) {
-        UE_LOG(LogTemp, Log, TEXT("length: %s %s"), *header);
+    
+    FString FormString = "key=" + key;
 
-    }
-   
+    request->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
+    request->SetContentAsString(FormString);
 
     request->OnProcessRequestComplete().BindLambda([callback](FHttpRequestPtr request, FHttpResponsePtr response, bool success) {
         FString response_string = response->GetContentAsString();
@@ -56,7 +55,6 @@ void UWeb3AuthApi::Logout(const FLogoutApiRequest logoutApiRequest, const TFunct
     request->SetURL(TEXT("https://broadcast-server.tor.us/store/set"));
 
     FString FormString = "key=" + logoutApiRequest.key + "&data=" + FGenericPlatformHttp::UrlEncode(logoutApiRequest.data) + "&signature=" + logoutApiRequest.signature + "&timeout=" + FString::FromInt(logoutApiRequest.timeout);
-    UE_LOG(LogTemp, Error, TEXT("%s"), *FormString);
 
     request->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
     request->SetContentAsString(FormString);
