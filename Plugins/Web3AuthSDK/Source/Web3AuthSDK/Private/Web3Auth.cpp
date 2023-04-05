@@ -10,6 +10,8 @@
 FOnLogin AWeb3Auth::loginEvent;
 FOnLogout AWeb3Auth::logoutEvent;
 
+FWeb3AuthResponse AWeb3Auth::web3AuthResponse;
+
 #if PLATFORM_ANDROID
 JNI_METHOD void Java_com_epicgames_unreal_GameActivity_onDeepLink(JNIEnv* env, jclass clazz, jstring uri) {
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true)) {
@@ -131,6 +133,13 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	const FString jsonOutput = json;
 	FString base64 = FBase64::Encode(jsonOutput);
 
+	if (web3AuthOptions.network == FNetwork::TESTNET) {
+		web3AuthOptions.sdkUrl = "https://dev-sdk.openlogin.com";
+	}
+	else {
+		web3AuthOptions.sdkUrl = "https://sdk.openlogin.com";
+	}
+
 	FString url = web3AuthOptions.sdkUrl + "/" + path + "#" + base64;
 
 #if PLATFORM_ANDROID
@@ -196,8 +205,6 @@ void AWeb3Auth::setResultUrl(FString hash) {
 
 	UE_LOG(LogTemp, Warning, TEXT("respose json %s"), *json);
 
-
-	FWeb3AuthResponse web3AuthResponse;
 
 	if (!FJsonObjectConverter::JsonObjectStringToUStruct(json, &web3AuthResponse, 0, 0)) {
 		UE_LOG(LogTemp, Warning, TEXT("failed to parse json"));
@@ -336,6 +343,18 @@ void AWeb3Auth::callBackFromWebAuthenticateIOS(NSString* sResult) {
     AWeb3Auth::setResultUrl(result);
 }
 #endif
+
+FString AWeb3Auth::getPrivKey() {
+	return web3AuthOptions.useCoreKitKey ? web3AuthResponse.coreKitKey : web3AuthResponse.privKey; 
+} 
+
+FString AWeb3Auth::getEd25519PrivKey() {
+	return web3AuthOptions.useCoreKitKey ? web3AuthResponse.coreKitEd25519PrivKey : web3AuthResponse.ed25519PrivKey; 
+} 
+
+FUserInfo AWeb3Auth::getUserInfo() {
+	return web3AuthResponse.userInfo; 
+}
 
 void AWeb3Auth::BeginPlay() {
 	Super::BeginPlay();

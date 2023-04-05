@@ -492,7 +492,7 @@ struct FWeb3AuthOptions
     	FChainNamespace chainNamespace;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-        FBool useCoreKitKey;
+        bool useCoreKitKey;
 
 	FWeb3AuthOptions() {};
 
@@ -504,7 +504,7 @@ struct FWeb3AuthOptions
 		whiteLabel = other.whiteLabel;
 		loginConfig = other.loginConfig;
 		chainNamespace = other.chainNamespace;
-		useCoreKitKey = other.useCoreKitKey
+		useCoreKitKey = other.useCoreKitKey;
 	}
 
 };
@@ -551,6 +551,7 @@ class WEB3AUTHSDK_API AWeb3Auth : public AActor
 	GENERATED_BODY()
 
 	FWeb3AuthOptions web3AuthOptions;
+	static FWeb3AuthResponse web3AuthResponse;
 
 	TSharedPtr<IHttpRouter> httpRouter;
 	TArray<TPair<TSharedPtr<IHttpRouter>, FHttpRouteHandle>> httpRoutes;
@@ -600,6 +601,15 @@ public:
 		return output;
 	}
 
+	UFUNCTION(BlueprintCallable)
+		FString getPrivKey();
+
+	UFUNCTION(BlueprintCallable)
+		FString getEd25519PrivKey();
+
+	UFUNCTION(BlueprintCallable)
+		FUserInfo getUserInfo();
+
     #if PLATFORM_IOS
     static void callBackFromWebAuthenticateIOS(NSString* sResult);
     #endif
@@ -619,4 +629,5 @@ private:
 
 	bool requestAuthCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete);
 	bool requestCompleteCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete);
+
 };
