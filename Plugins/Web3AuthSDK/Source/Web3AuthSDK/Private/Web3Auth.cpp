@@ -345,14 +345,35 @@ void AWeb3Auth::callBackFromWebAuthenticateIOS(NSString* sResult) {
 #endif
 
 FString AWeb3Auth::getPrivKey() {
-	return web3AuthOptions.useCoreKitKey ? web3AuthResponse.coreKitKey : web3AuthResponse.privKey; 
+	if (web3AuthResponse.coreKitKey.IsEmpty() || web3AuthResponse.privKey.IsEmpty()) {
+		FString error = Web3AuthError::getError(ErrorCode::NOUSERFOUND);
+		UE_LOG(LogTemp, Fatal, TEXT("%s"), *error);
+
+		return "";
+	}
+
+	return web3AuthOptions.useCoreKitKey ? web3AuthResponse.coreKitKey : web3AuthResponse.privKey;
 } 
 
 FString AWeb3Auth::getEd25519PrivKey() {
-	return web3AuthOptions.useCoreKitKey ? web3AuthResponse.coreKitEd25519PrivKey : web3AuthResponse.ed25519PrivKey; 
+	if (web3AuthResponse.coreKitEd25519PrivKey.IsEmpty() || web3AuthResponse.ed25519PrivKey.IsEmpty()) {
+		FString error = Web3AuthError::getError(ErrorCode::NOUSERFOUND);
+		UE_LOG(LogTemp, Fatal, TEXT("%s"), *error);
+
+		return "";
+	}
+
+	return web3AuthOptions.useCoreKitKey ? web3AuthResponse.coreKitEd25519PrivKey : web3AuthResponse.ed25519PrivKey;
 } 
 
 FUserInfo AWeb3Auth::getUserInfo() {
+	if (web3AuthResponse.userInfo.IsEmpty()) {
+		FString error = Web3AuthError::getError(ErrorCode::NOUSERFOUND);
+		UE_LOG(LogTemp, Fatal, TEXT("%s"), *error);
+
+		return FUserInfo();
+	}
+
 	return web3AuthResponse.userInfo; 
 }
 

@@ -19,11 +19,12 @@
 #include "Runtime/Online/HTTPServer/Public/HttpServerModule.h"
 #include "Runtime/Online/HTTPServer/Public/HttpServerResponse.h"
 
-
 #if PLATFORM_ANDROID
 #include "../../../Launch/Public/Android/AndroidJNI.h"
 #include "Android/AndroidApplication.h"
 #endif
+
+#include "Web3AuthError.h"
 
 
 #include "Web3Auth.generated.h"
@@ -423,6 +424,20 @@ struct FUserInfo
 		FString oAuthAccessToken;
 
 	FUserInfo() {};
+
+	bool IsEmpty() const { 
+		return email.IsEmpty() 
+			&& name.IsEmpty() 
+			&& profileImage.IsEmpty() 
+			&& aggregateVerifier.IsEmpty() 
+			&& verifier.IsEmpty() 
+			&& verifierId.IsEmpty() 
+			&& typeOfLogin.IsEmpty() 
+			&& dappShare.IsEmpty()
+			&& idToken.IsEmpty() 
+			&& oAuthIdToken.IsEmpty() 
+			&& oAuthAccessToken.IsEmpty(); 
+	}
 
 };
 
