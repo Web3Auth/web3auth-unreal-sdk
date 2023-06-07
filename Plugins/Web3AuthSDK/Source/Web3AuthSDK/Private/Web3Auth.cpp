@@ -68,10 +68,6 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 		case FNetwork::AQUA:
         	initParams->SetStringField("network", "aqua");
         	break;
-        case FNetwork::CELESTE:
-        	initParams->SetStringField("network", "celeste");
-        	break;
-
 	}
 
 	if (web3AuthOptions.redirectUrl != "")
@@ -346,9 +342,6 @@ void AWeb3Auth::callBackFromWebAuthenticateIOS(NSString* sResult) {
 
 FString AWeb3Auth::getPrivKey() {
 	if (web3AuthResponse.coreKitKey.IsEmpty() || web3AuthResponse.privKey.IsEmpty()) {
-		FString error = Web3AuthError::getError(ErrorCode::NOUSERFOUND);
-		UE_LOG(LogTemp, Fatal, TEXT("%s"), *error);
-
 		return "";
 	}
 
@@ -357,9 +350,6 @@ FString AWeb3Auth::getPrivKey() {
 
 FString AWeb3Auth::getEd25519PrivKey() {
 	if (web3AuthResponse.coreKitEd25519PrivKey.IsEmpty() || web3AuthResponse.ed25519PrivKey.IsEmpty()) {
-		FString error = Web3AuthError::getError(ErrorCode::NOUSERFOUND);
-		UE_LOG(LogTemp, Fatal, TEXT("%s"), *error);
-
 		return "";
 	}
 
