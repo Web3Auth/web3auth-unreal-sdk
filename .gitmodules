@@ -1,0 +1,3 @@
+[submodule "Plugins/Web3AuthSDK/Source/Web3AuthSDK/Public/secp256k1"]
+	path = Plugins/Web3AuthSDK/Source/Web3AuthSDK/Public/secp256k1
+	url = https://github.com/bitcoin-core/secp256k1

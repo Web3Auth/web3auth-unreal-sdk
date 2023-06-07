@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Web3Auth.h"
@@ -9,6 +9,9 @@
 
 FOnLogin AWeb3Auth::loginEvent;
 FOnLogout AWeb3Auth::logoutEvent;
+
+UKeyStoreUtils* AWeb3Auth::keyStoreUtils;
+UECCrypto* AWeb3Auth::crypto;
 
 #if PLATFORM_ANDROID
 JNI_METHOD void Java_com_epicgames_unreal_GameActivity_onDeepLink(JNIEnv* env, jclass clazz, jstring uri) {
@@ -44,6 +47,10 @@ AWeb3Auth::AWeb3Auth()
 
 void AWeb3Auth::setOptions(FWeb3AuthOptions options) {
 	this->web3AuthOptions = options;
+	this->keyStoreUtils = NewObject<UKeyStoreUtils>();
+	this->crypto = NewObject<UECCrypto>();
+
+	authorizeSession();
 }
 
 void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TSharedPtr<FJsonObject> extraParams = NULL) {
@@ -161,7 +168,8 @@ void AWeb3Auth::proccessLogout(FString redirectUrl, FString appState) {
 	if (appState != "")
 		extraParams->SetStringField("appState", appState);
 
-	this->request("logout", NULL, extraParams);
+	//this->request("logout", NULL, extraParams);
+	sessionTimeout();
 }
 
 void AWeb3Auth::setResultUrl(FString hash) {
@@ -207,6 +215,7 @@ void AWeb3Auth::setResultUrl(FString hash) {
 		});	
 	}
 	else {
+		AWeb3Auth::keyStoreUtils->Add("sessionid", web3AuthResponse.sessionId);
 		AsyncTask(ENamedThreads::GameThread, [=]() {
 			AWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
 		});
@@ -346,6 +355,106 @@ void AWeb3Auth::EndPlay(const EEndPlayReason::Type EndPlayReason) {
 	}
 	httpRoutes.Empty();
 }
+
+void AWeb3Auth::authorizeSession() {
+	FString sessionId = AWeb3Auth::keyStoreUtils->Get("sessionid");
+	if (!sessionId.IsEmpty()) {
+		FString pubKey = crypto->generatePublicKey(sessionId);
+		UE_LOG(LogTemp, Log, TEXT("public key %s"), *pubKey);
+
+		web3AuthApi->AuthorizeSession(pubKey, [sessionId](FStoreApiResponse response)
+			{
+				UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response.message);
+
+				FShareMetaData shareMetaData;
+
+				if (!FJsonObjectConverter::JsonObjectStringToUStruct(response.message, &shareMetaData, 0, 0)) {
+					UE_LOG(LogTemp, Error, TEXT("failed to parse json"));
+					return;
+				}
+
+				FString output = crypto->decrypt(shareMetaData.ciphertext, sessionId, shareMetaData.ephemPublicKey, shareMetaData.iv);
+				UE_LOG(LogTemp, Log, TEXT("output %s"), *output);
+		
+				TSharedPtr<FJsonObject> tempJson;
+				TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(output);
+
+				if (FJsonSerializer::Deserialize(JsonReader, tempJson) && tempJson.IsValid()) {
+					tempJson->SetObjectField("userInfo", tempJson->GetObjectField("store"));
+					tempJson->RemoveField("store");
+
+					FString json;
+					TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&json);
+					FJsonSerializer::Serialize(tempJson.ToSharedRef(), Writer);
+
+					FWeb3AuthResponse web3AuthResponse;
+
+					if (!FJsonObjectConverter::JsonObjectStringToUStruct(json, &web3AuthResponse, 0, 0)) {
+						UE_LOG(LogTemp, Error, TEXT("failed to parse json"));
+						return;
+					}
+
+					if (web3AuthResponse.error != "") {
+						return;
+					}
+
+					AsyncTask(ENamedThreads::GameThread, [=]() {
+						AWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
+						});
+				}
+
+		});
+	}
+}
+
+void AWeb3Auth::sessionTimeout() {
+	FString sessionId = AWeb3Auth::keyStoreUtils->Get("sessionid");
+
+	if (!sessionId.IsEmpty()) {
+		FString pubKey = crypto->generatePublicKey(sessionId);
+		UE_LOG(LogTemp, Log, TEXT("public key %s"), *pubKey);
+
+		web3AuthApi->AuthorizeSession(pubKey, [pubKey, sessionId, this](FStoreApiResponse response)
+			{
+				UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response.message);
+		
+				FShareMetaData shareMetaData;
+
+				if (!FJsonObjectConverter::JsonObjectStringToUStruct(response.message, &shareMetaData, 0, 0)) {
+					UE_LOG(LogTemp, Error, TEXT("failed to parse json"));
+					return;
+				}
+
+				FString encryptedData = crypto->encrypt("", sessionId, shareMetaData.ephemPublicKey, shareMetaData.iv);
+				shareMetaData.ciphertext = encryptedData;
+
+
+				TSharedPtr<FJsonObject> jsonObject = MakeShareable(new FJsonObject);
+				FJsonObjectConverter::UStructToJsonObject(FShareMetaData::StaticStruct(), &shareMetaData, jsonObject.ToSharedRef(), 0, 0);
+
+				FString jsonString;
+				TSharedRef<TJsonWriter<TCHAR>> jsonWriter = TJsonWriterFactory<>::Create(&jsonString);
+				FJsonSerializer::Serialize(jsonObject.ToSharedRef(), jsonWriter);
+
+				FLogoutApiRequest request;
+				request.data = jsonString;
+				request.key = pubKey;
+				request.signature = crypto->generateECDSASignature(sessionId, jsonString);
+				request.timeout = 1;
+
+				web3AuthApi->Logout(request, [](FString response)
+					{
+						UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response);
+						AWeb3Auth::keyStoreUtils->Remove("sessionId");
+						AsyncTask(ENamedThreads::GameThread, [=]() {
+							AWeb3Auth::logoutEvent.ExecuteIfBound();
+						});
+					});
+		});
+
+	}
+}
+
 
 void AWeb3Auth::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
