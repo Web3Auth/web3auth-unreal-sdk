@@ -110,7 +110,7 @@ enum class FMFALevel : uint8
 UENUM(BlueprintType)
 enum class FNetwork : uint8
 {
-	MAINNET = 0, TESTNET = 1, CYAN = 2, AQUA = 3, CELESTE = 4
+	MAINNET = 0, TESTNET = 1, CYAN = 2, AQUA = 3
 };
 
 UENUM(BlueprintType)
