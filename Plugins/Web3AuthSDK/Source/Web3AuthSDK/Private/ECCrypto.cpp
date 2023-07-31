@@ -3,8 +3,8 @@
 #include <vector>
 #include <Web3Auth.h>
 
-#pragma comment(lib, "crypt32.lib")
-#pragma comment(lib, "WS2_32.lib")
+//#pragma comment(lib, "crypt32.lib")
+//#pragma comment(lib, "WS2_32.lib")
 
 
 unsigned char* toByteArray(const std::string& s) {
