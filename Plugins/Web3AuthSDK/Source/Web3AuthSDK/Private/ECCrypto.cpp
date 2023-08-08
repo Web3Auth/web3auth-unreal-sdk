@@ -3,9 +3,10 @@
 #include <vector>
 #include <Web3Auth.h>
 
-//#pragma comment(lib, "crypt32.lib")
-//#pragma comment(lib, "WS2_32.lib")
-
+#if PLATFORM_WINDOWS
+#pragma comment(lib, "crypt32.lib")
+#pragma comment(lib, "WS2_32.lib")
+#endif
 
 unsigned char* toByteArray(const std::string& s) {
 	size_t len = s.length() / 2;

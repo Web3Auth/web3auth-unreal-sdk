@@ -5,7 +5,10 @@
 #include "CoreMinimal.h"
 
 #pragma warning(disable:4996)
-//#pragma comment(lib,"WS2_32.Lib") //Winsock Library
+
+#if PLATFORM_WINDOWS
+#pragma comment(lib,"WS2_32.Lib") //Winsock Library
+#endif
 
 #define UI UI_ST
 THIRD_PARTY_INCLUDES_START

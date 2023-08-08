@@ -58,10 +58,10 @@ https://docs.unrealengine.com/en-US/SharingAndReleasing/Mobile/UnrealPluginLangu
                     <category android:name="android.intent.category.BROWSABLE" />
 
                     <data
-                        android:host="com.torus.Web3AuthUnity"
+                        android:host="com.mm.Coltan"
                         android:pathPattern="/*"
                         android:pathPrefix="/auth"
-                        android:scheme="torusapp" />
+                        android:scheme="mm" />
                   </intent-filter>
                 </addElements>
             </true>

@@ -88,6 +88,25 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 		initParams->SetStringField("whiteLabel", output);
 	}
 
+	/*
+loginConfig:{google: {
+	  verifier: "web3auth-google-example",
+	  typeOfLogin: "google",
+	  clientId:
+		"774338308167-q463s7kpvja16l4l0kko3nb925ikds2p.apps.googleusercontent.com",
+	}
+}
+	*/
+
+	/*
+	FLoginConfigItem itemText;
+	itemText.verifier = "web3auth-google-example";
+	itemText.typeOfLogin = "google";
+	itemText.clientId = "774338308167-q463s7kpvja16l4l0kko3nb925ikds2p.apps.googleusercontent.com";
+
+	web3AuthOptions.loginConfig.Add("google", itemText);
+	*/
+
 	if (!web3AuthOptions.loginConfig.IsEmpty()) {
 		FString output;
 
@@ -178,7 +197,6 @@ void AWeb3Auth::setResultUrl(FString hash) {
 		return;
 	}
 
-
 	UE_LOG(LogTemp, Warning, TEXT("respose base64 %s"), *hash);
 
 	FString json = "";
@@ -256,6 +274,7 @@ FString AWeb3Auth::startLocalWebServer() {
 	httpServerModule.StartAllListeners();
 
 	return "http://localhost:"+ FString::FromInt(port) + "/complete";
+	//return "http://localhost:5502/complete.html";
 }
 
 
