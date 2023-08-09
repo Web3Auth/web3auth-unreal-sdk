@@ -58,7 +58,7 @@ https://docs.unrealengine.com/en-US/SharingAndReleasing/Mobile/UnrealPluginLangu
                     <category android:name="android.intent.category.BROWSABLE" />
 
                     <data
-                        android:host="com.mm.Coltan"
+                        android:host="com.MixMarvel.Tantalum"
                         android:pathPattern="/*"
                         android:pathPrefix="/auth"
                         android:scheme="mm" />

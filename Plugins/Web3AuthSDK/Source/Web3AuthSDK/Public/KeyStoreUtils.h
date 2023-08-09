@@ -22,7 +22,9 @@ class WEB3AUTHSDK_API UKeyStoreUtils : public UObject
 {
 	GENERATED_BODY()
 private:
-	UWeb3StorageAdapter* StorageInstance;
+	//UWeb3StorageAdapter* StorageInstance;
+	UWeb3StorageAdapter* getStorageInstance();
+
 public:
 	void Add(FString key, FString value);
 	FString Get(FString key);

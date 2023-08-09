@@ -1,24 +1,42 @@
 #include "KeyStoreUtils.h"
+#include "HAL/FileManager.h"
 
 UKeyStoreUtils::UKeyStoreUtils() {
-	StorageInstance = Cast<UWeb3StorageAdapter>(UGameplayStatics::LoadGameFromSlot(TEXT("Web3AuthDataSlot"), 0));
-	if(StorageInstance == nullptr) {
-		StorageInstance = Cast<UWeb3StorageAdapter>(UGameplayStatics::CreateSaveGameObject(UWeb3StorageAdapter::StaticClass()));
-	}
+	//StorageInstance = Cast<UWeb3StorageAdapter>(UGameplayStatics::LoadGameFromSlot(TEXT("Web3AuthDataSlot"), 0));
+	//if(StorageInstance == nullptr) {
+	//	StorageInstance = Cast<UWeb3StorageAdapter>(UGameplayStatics::CreateSaveGameObject(UWeb3StorageAdapter::StaticClass()));
+	//}
 }
 
 UKeyStoreUtils::~UKeyStoreUtils() {
 }
 
+UWeb3StorageAdapter* UKeyStoreUtils::getStorageInstance()
+{
+	auto StorageInstance = Cast<UWeb3StorageAdapter>(UGameplayStatics::LoadGameFromSlot(TEXT("Web3AuthDataSlot"), 0));
+	if (StorageInstance == nullptr) {
+		StorageInstance = Cast<UWeb3StorageAdapter>(UGameplayStatics::CreateSaveGameObject(UWeb3StorageAdapter::StaticClass()));
+	}
+
+	return StorageInstance;
+}
+
 void UKeyStoreUtils::Add(FString key, FString value) {
+
+	auto StorageInstance = getStorageInstance();
+
 	if (StorageInstance->KeyValuePairs.Contains(key)) {
 		StorageInstance->KeyValuePairs.Remove(key);
 	}
+
 	StorageInstance->KeyValuePairs.Add(key, value);
 	UGameplayStatics::SaveGameToSlot(StorageInstance, TEXT("Web3AuthDataSlot"), 0);
 }
 
 FString UKeyStoreUtils::Get(FString key) {
+	auto StorageInstance = getStorageInstance();
+
+
 	if (StorageInstance->KeyValuePairs.Contains(key)) {
 		return StorageInstance->KeyValuePairs[key];
 	}
@@ -26,6 +44,9 @@ FString UKeyStoreUtils::Get(FString key) {
 }
 
 void UKeyStoreUtils::Remove(FString key) {
+	auto StorageInstance = getStorageInstance();
+
+
 	if (StorageInstance->KeyValuePairs.Contains(key)) {
 		StorageInstance->KeyValuePairs.Remove(key);
 		UGameplayStatics::SaveGameToSlot(StorageInstance, TEXT("Web3AuthDataSlot"), 0);
