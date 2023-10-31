@@ -118,7 +118,7 @@ enum class FNetwork : uint8
 UENUM(BlueprintType)
 enum class FChainNamespace : uint8
 {
-    EIP555,
+    EIP155,
     SOLANA
 };
 
