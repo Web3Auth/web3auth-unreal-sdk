@@ -10,6 +10,8 @@
 FOnLogin AWeb3Auth::loginEvent;
 FOnLogout AWeb3Auth::logoutEvent;
 
+FWeb3AuthResponse AWeb3Auth::web3AuthResponse;
+
 UKeyStoreUtils* AWeb3Auth::keyStoreUtils;
 UECCrypto* AWeb3Auth::crypto;
 
@@ -70,7 +72,9 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 		case FNetwork::CYAN:
 			initParams->SetStringField("network", "cyan");
 			break;
-
+		case FNetwork::AQUA:
+            initParams->SetStringField("network", "aqua");
+           	break;
 	}
 
 	if (web3AuthOptions.redirectUrl != "")
@@ -131,6 +135,13 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 
 	const FString jsonOutput = json;
 	FString base64 = FBase64::Encode(jsonOutput);
+
+	if (web3AuthOptions.network == FNetwork::TESTNET) {
+    	web3AuthOptions.sdkUrl = "https://dev-sdk.openlogin.com";
+    }
+    else {
+    	web3AuthOptions.sdkUrl = "https://sdk.openlogin.com";
+    }
 
 	FString url = web3AuthOptions.sdkUrl + "/" + path + "#" + base64;
 
@@ -339,6 +350,34 @@ void AWeb3Auth::callBackFromWebAuthenticateIOS(NSString* sResult) {
     AWeb3Auth::setResultUrl(result);
 }
 #endif
+
+
+FString AWeb3Auth::getPrivKey() {
+	if (web3AuthResponse.coreKitKey.IsEmpty() || web3AuthResponse.privKey.IsEmpty()) {
+		return "";
+	}
+
+	return web3AuthOptions.useCoreKitKey ? web3AuthResponse.coreKitKey : web3AuthResponse.privKey;
+}
+
+FString AWeb3Auth::getEd25519PrivKey() {
+	if (web3AuthResponse.coreKitEd25519PrivKey.IsEmpty() || web3AuthResponse.ed25519PrivKey.IsEmpty()) {
+		return "";
+	}
+
+	return web3AuthOptions.useCoreKitKey ? web3AuthResponse.coreKitEd25519PrivKey : web3AuthResponse.ed25519PrivKey;
+}
+
+FUserInfo AWeb3Auth::getUserInfo() {
+	if (web3AuthResponse.userInfo.IsEmpty()) {
+		FString error = Web3AuthError::getError(ErrorCode::NOUSERFOUND);
+		UE_LOG(LogTemp, Fatal, TEXT("%s"), *error);
+
+		return FUserInfo();
+	}
+
+	return web3AuthResponse.userInfo;
+}
 
 void AWeb3Auth::BeginPlay() {
 	Super::BeginPlay();

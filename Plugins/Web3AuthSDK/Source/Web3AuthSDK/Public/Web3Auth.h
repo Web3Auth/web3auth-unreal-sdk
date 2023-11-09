@@ -27,6 +27,7 @@
 #include "Android/AndroidApplication.h"
 #endif
 
+#include "Web3AuthError.h"
 
 #include "Web3Auth.generated.h"
 
@@ -111,9 +112,15 @@ enum class FMFALevel : uint8
 UENUM(BlueprintType)
 enum class FNetwork : uint8
 {
-	MAINNET = 0, TESTNET = 1, CYAN = 2
+	MAINNET = 0, TESTNET = 1, CYAN = 2, AQUA = 3
 };
 
+UENUM(BlueprintType)
+enum class FChainNamespace : uint8
+{
+    EIP155,
+    SOLANA
+};
 
 USTRUCT(BlueprintType)
 struct WEB3AUTHSDK_API FExtraLoginOptions
@@ -420,6 +427,20 @@ struct FUserInfo
 
 	FUserInfo() {};
 
+	bool IsEmpty() const {
+    		return email.IsEmpty()
+    			&& name.IsEmpty()
+    			&& profileImage.IsEmpty()
+    			&& aggregateVerifier.IsEmpty()
+    			&& verifier.IsEmpty()
+    			&& verifierId.IsEmpty()
+    			&& typeOfLogin.IsEmpty()
+    			&& dappShare.IsEmpty()
+    			&& idToken.IsEmpty()
+    			&& oAuthIdToken.IsEmpty()
+    			&& oAuthAccessToken.IsEmpty();
+    }
+
 };
 
 
@@ -484,6 +505,11 @@ struct FWeb3AuthOptions
 	UPROPERTY(BlueprintReadWrite)
 		TMap<FString, FLoginConfigItem> loginConfig;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FChainNamespace chainNamespace;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        bool useCoreKitKey;
 
 	FWeb3AuthOptions() {};
 
@@ -494,6 +520,8 @@ struct FWeb3AuthOptions
 		network = other.network;
 		whiteLabel = other.whiteLabel;
 		loginConfig = other.loginConfig;
+		chainNamespace = other.chainNamespace;
+        useCoreKitKey = other.useCoreKitKey;
 	}
 
 };
@@ -518,6 +546,12 @@ struct FWeb3AuthResponse
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FUserInfo userInfo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FString coreKitKey;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FString coreKitEd25519PrivKey;
 
 	FWeb3AuthResponse() {};
 
@@ -553,6 +587,7 @@ class WEB3AUTHSDK_API AWeb3Auth : public AActor
 	GENERATED_BODY()
 
 	FWeb3AuthOptions web3AuthOptions;
+	static FWeb3AuthResponse web3AuthResponse;
 
 	TSharedPtr<IHttpRouter> httpRouter;
 	TArray<TPair<TSharedPtr<IHttpRouter>, FHttpRouteHandle>> httpRoutes;
@@ -607,6 +642,15 @@ public:
 
 		return output;
 	}
+
+    UFUNCTION(BlueprintCallable)
+    		FString getPrivKey();
+
+    UFUNCTION(BlueprintCallable)
+    		FString getEd25519PrivKey();
+
+    UFUNCTION(BlueprintCallable)
+    		FUserInfo getUserInfo();
 
     #if PLATFORM_IOS
     static void callBackFromWebAuthenticateIOS(NSString* sResult);
