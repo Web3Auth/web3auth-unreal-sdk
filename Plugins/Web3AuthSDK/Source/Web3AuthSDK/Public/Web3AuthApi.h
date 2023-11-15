@@ -52,6 +52,9 @@ public:
     // Logout the user session
     void Logout(const FLogoutApiRequest logoutApiRequest, const TFunction<void(FString)> callback);
 
+    // Create the user session
+    void CreateSession(const FLogoutApiRequest logoutApiRequest, const TFunction<void(FString)> callback);
+
 private:
     // Private constructor to enforce singleton pattern
     UWeb3AuthApi();

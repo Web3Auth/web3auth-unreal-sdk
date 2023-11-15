@@ -223,6 +223,36 @@ FString UECCrypto::generateECDSASignature(const FString& privateKeyHex, const FS
 	return signature_hex;
 }
 
+FString generateECPrivateKey()
+{
+    EC_KEY *ecKey = EC_KEY_new_by_curve_name(NID_secp128r1);
+    if (!ecKey) {
+        std::cerr << "Error creating EC_KEY structure." << std::endl;
+        return "";
+    }
+
+    if (!EC_KEY_generate_key(ecKey)) {
+        std::cerr << "Error generating EC key." << std::endl;
+        EC_KEY_free(ecKey);
+        return "";
+    }
+
+    const BIGNUM *privateKey = EC_KEY_get0_private_key(ecKey);
+    FString privateKeyHex = BN_bn2hex(privateKey);
+
+    EC_KEY_free(ecKey);
+
+    return privateKeyHex;
+}
+
+std::vector<byte> generateRandomBytes()
+{
+    AutoSeededRandomPool rng;
+    std::vector<byte> bytes(16);
+    rng.GenerateBlock(bytes.data(), bytes.size());
+    return bytes;
+}
+
 UECCrypto::~UECCrypto()
 {
 }

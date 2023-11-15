@@ -10,6 +10,8 @@
 FOnLogin AWeb3Auth::loginEvent;
 FOnLogout AWeb3Auth::logoutEvent;
 
+FWeb3AuthResponse AWeb3Auth::web3AuthResponse;
+
 UKeyStoreUtils* AWeb3Auth::keyStoreUtils;
 UECCrypto* AWeb3Auth::crypto;
 
@@ -70,7 +72,15 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 		case FNetwork::CYAN:
 			initParams->SetStringField("network", "cyan");
 			break;
-
+        case FNetwork::AQUA:
+            initParams->SetStringField("network", "aqua");
+            break;
+        case FNetwork::SAPPHIRE_DEVNET:
+            initParams->SetStringField("network", "sapphire_devnet");
+            break;
+        case FNetwork::SAPPHIRE_MAINNET:
+            initParams->SetStringField("network", "sapphire_mainnet");
+            break;
 	}
 
 	if (web3AuthOptions.redirectUrl != "")
@@ -80,6 +90,18 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	FString redirectUrl = startLocalWebServer();
 	initParams->SetStringField("redirectUrl", redirectUrl);
 #endif
+
+    switch (web3AuthOptions.buildEnv) {
+        case FBuildEnv::PRODUCTION:
+        	initParams->SetStringField("buildEnv", "production");
+        	break;
+        case FBuildEnv::TESTING:
+        	initParams->SetStringField("buildEnv", "testing");
+        	break;
+        case FBuildEnv::STAGING:
+        	initParams->SetStringField("buildEnv", "staging");
+        	break;
+    2}
 
 	if (web3AuthOptions.whiteLabel.name != "") {
 		FString output;
@@ -106,7 +128,8 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 		initParams->SetStringField("loginConfig", output);
 	}
 
-	paramMap->SetObjectField("init", initParams.ToSharedRef());
+	paramMap->SetObjectField("options", initParams.ToSharedRef());
+	paramMap->SetObjectField("actionType", "login");
 
 	
 	TSharedPtr<FJsonObject> params = MakeShareable(new FJsonObject);
@@ -132,7 +155,16 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	const FString jsonOutput = json;
 	FString base64 = FBase64::Encode(jsonOutput);
 
-	FString url = web3AuthOptions.sdkUrl + "/" + path + "#" + base64;
+	if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
+        web3AuthOptions.sdkUrl = "https://staging-auth.web3auth.io/v5";
+    }
+    else if(web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
+        web3AuthOptions.sdkUrl = "https://develop-auth.web3auth.io";
+    } else {
+        web3AuthOptions.sdkUrl = "https://auth.web3auth.io/v5";
+    }
+
+	FString url = web3AuthOptions.sdkUrl + "/" + path + "#" + "b64Params=" + base64;
 
 #if PLATFORM_ANDROID
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true)) {
@@ -152,7 +184,7 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 
 void AWeb3Auth::processLogin(FLoginParams loginParams) {
 	UE_LOG(LogTemp, Warning, TEXT("login called"));
-	this->request("login", &loginParams);
+	this->request("start", &loginParams);
 }
 
 /*void AWeb3Auth::logout(FJsonObject params) {
@@ -339,6 +371,33 @@ void AWeb3Auth::callBackFromWebAuthenticateIOS(NSString* sResult) {
     AWeb3Auth::setResultUrl(result);
 }
 #endif
+
+FString AWeb3Auth::getPrivKey() {
+	if (web3AuthResponse.coreKitKey.IsEmpty() || web3AuthResponse.privKey.IsEmpty()) {
+		return "";
+	}
+
+	return web3AuthOptions.useCoreKitKey ? web3AuthResponse.coreKitKey : web3AuthResponse.privKey;
+}
+
+FString AWeb3Auth::getEd25519PrivKey() {
+	if (web3AuthResponse.coreKitEd25519PrivKey.IsEmpty() || web3AuthResponse.ed25519PrivKey.IsEmpty()) {
+		return "";
+	}
+
+	return web3AuthOptions.useCoreKitKey ? web3AuthResponse.coreKitEd25519PrivKey : web3AuthResponse.ed25519PrivKey;
+}
+
+FUserInfo AWeb3Auth::getUserInfo() {
+	if (web3AuthResponse.userInfo.IsEmpty()) {
+		FString error = Web3AuthError::getError(ErrorCode::NOUSERFOUND);
+		UE_LOG(LogTemp, Fatal, TEXT("%s"), *error);
+
+		return FUserInfo();
+	}
+
+	return web3AuthResponse.userInfo;
+}
 
 void AWeb3Auth::BeginPlay() {
 	Super::BeginPlay();

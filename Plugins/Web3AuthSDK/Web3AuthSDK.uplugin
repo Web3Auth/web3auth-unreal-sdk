@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "1.0",
+	"VersionName": "2.0",
 	"FriendlyName": "Web3AuthSDK",
 	"Description": "",
 	"Category": "Other",
@@ -19,7 +19,12 @@
 			"Name": "Web3AuthSDK",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
-			"WhitelistPlatforms": [ "Android", "IOS", "Win64", "Mac" ]
+			"PlatformAllowList": [
+				"Android",
+				"IOS",
+				"Win64",
+				"Mac"
+			]
 		}
 	]
 }

@@ -111,7 +111,22 @@ enum class FMFALevel : uint8
 UENUM(BlueprintType)
 enum class FNetwork : uint8
 {
-	MAINNET = 0, TESTNET = 1, CYAN = 2
+	MAINNET = 0, TESTNET = 1, CYAN = 2, AQUA = 3, SAPPHIRE_DEVNET = 4, SAPPHIRE_MAINNET = 5
+};
+
+UENUM(BlueprintType)
+enum class FChainNamespace : uint8
+{
+    EIP155,
+    SOLANA
+};
+
+UENUM(BlueprintType)
+enum class FBuildEnv : uint8
+{
+    PRODUCTION,
+    STAGING,
+	TESTING
 };
 
 
@@ -420,6 +435,20 @@ struct FUserInfo
 
 	FUserInfo() {};
 
+	bool IsEmpty() const {
+        		return email.IsEmpty()
+        			&& name.IsEmpty()
+        			&& profileImage.IsEmpty()
+        			&& aggregateVerifier.IsEmpty()
+        			&& verifier.IsEmpty()
+        			&& verifierId.IsEmpty()
+        			&& typeOfLogin.IsEmpty()
+        			&& dappShare.IsEmpty()
+        			&& idToken.IsEmpty()
+        			&& oAuthIdToken.IsEmpty()
+        			&& oAuthAccessToken.IsEmpty();
+    }
+
 };
 
 
@@ -479,10 +508,19 @@ struct FWeb3AuthOptions
 		FNetwork network;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FBuildEnv buildEnv;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FWhiteLabelData whiteLabel;
 
 	UPROPERTY(BlueprintReadWrite)
 		TMap<FString, FLoginConfigItem> loginConfig;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FChainNamespace chainNamespace;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        bool useCoreKitKey;
 
 
 	FWeb3AuthOptions() {};
@@ -492,8 +530,11 @@ struct FWeb3AuthOptions
 		redirectUrl = other.redirectUrl;
 		sdkUrl = other.sdkUrl;
 		network = other.network;
+		buildEnv = other.buildEnv;
 		whiteLabel = other.whiteLabel;
 		loginConfig = other.loginConfig;
+		chainNamespace = other.chainNamespace;
+        useCoreKitKey = other.useCoreKitKey;
 	}
 
 };
@@ -518,6 +559,12 @@ struct FWeb3AuthResponse
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FUserInfo userInfo;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FString coreKitKey;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FString coreKitEd25519PrivKey;
 
 	FWeb3AuthResponse() {};
 
@@ -553,6 +600,7 @@ class WEB3AUTHSDK_API AWeb3Auth : public AActor
 	GENERATED_BODY()
 
 	FWeb3AuthOptions web3AuthOptions;
+	static FWeb3AuthResponse web3AuthResponse;
 
 	TSharedPtr<IHttpRouter> httpRouter;
 	TArray<TPair<TSharedPtr<IHttpRouter>, FHttpRouteHandle>> httpRoutes;
@@ -607,6 +655,15 @@ public:
 
 		return output;
 	}
+
+	UFUNCTION(BlueprintCallable)
+        FString getPrivKey();
+
+    UFUNCTION(BlueprintCallable)
+        FString getEd25519PrivKey();
+
+    UFUNCTION(BlueprintCallable)
+        FUserInfo getUserInfo();
 
     #if PLATFORM_IOS
     static void callBackFromWebAuthenticateIOS(NSString* sResult);
