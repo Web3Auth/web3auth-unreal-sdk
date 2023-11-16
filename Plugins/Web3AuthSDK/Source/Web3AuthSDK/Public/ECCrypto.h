@@ -42,5 +42,5 @@ public:
 
 	FString generatePublicKey(const FString& privateKeyHex);
 	FString generateECDSASignature(const FString& privateKeyHex, const FString& data);
-	FString generateECPrivateKey()
+	FString generateECPrivateKey();
 };

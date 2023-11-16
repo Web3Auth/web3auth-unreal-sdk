@@ -1,7 +1,7 @@
 #include "ECCrypto.h"
 #include <string>
+#include <iostream>
 #include <vector>
-#include <Web3Auth.h>
 
 #pragma comment(lib, "crypt32.lib")
 #pragma comment(lib, "WS2_32.lib")
