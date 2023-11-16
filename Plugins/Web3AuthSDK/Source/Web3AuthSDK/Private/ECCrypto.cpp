@@ -1,11 +1,4 @@
 #include "ECCrypto.h"
-#include <string>
-#include <iostream>
-#include <vector>
-
-#pragma comment(lib, "crypt32.lib")
-#pragma comment(lib, "WS2_32.lib")
-
 
 unsigned char* toByteArray(const std::string& s) {
 	size_t len = s.length() / 2;

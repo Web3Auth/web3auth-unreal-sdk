@@ -1,12 +1,6 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Web3Auth.h"
-#include "Web3AuthError.h"
-
-#if PLATFORM_IOS
-#include "IOS/ObjC/WebAuthenticate.h"
-#endif
 
 FOnLogin AWeb3Auth::loginEvent;
 FOnLogout AWeb3Auth::logoutEvent;

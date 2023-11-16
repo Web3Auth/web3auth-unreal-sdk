@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Http.h"
 #include "JsonUtilities.h"
-
+#include "GenericPlatform/GenericPlatformHttp.h"
 #include "Web3AuthApi.generated.h"
 
 USTRUCT()

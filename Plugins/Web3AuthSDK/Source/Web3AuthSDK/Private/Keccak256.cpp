@@ -7,7 +7,6 @@
  */
 
 #include "Keccak256.h"
-#include <cassert>
 
 using std::uint8_t;
 using std::uint64_t;

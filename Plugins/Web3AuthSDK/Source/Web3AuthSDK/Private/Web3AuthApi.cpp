@@ -2,7 +2,6 @@
 
 
 #include "Web3AuthApi.h"
-#include "GenericPlatform/GenericPlatformHttp.h"
 
 UWeb3AuthApi* UWeb3AuthApi::Instance = nullptr;
 

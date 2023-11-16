@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
-
 #include "Json.h"
 #include "JsonUtilities.h"
 
@@ -14,24 +13,24 @@
 #include "ECCrypto.h"
 #include "Web3AuthApi.h"
 
-
 #include "Runtime/Online/HTTPServer/Public/HttpPath.h"
 #include "Runtime/Online/HTTPServer/Public/IHttpRouter.h"
 #include "Runtime/Online/HTTPServer/Public/HttpServerHttpVersion.h"
 #include "Runtime/Online/HTTPServer/Public/HttpServerModule.h"
 #include "Runtime/Online/HTTPServer/Public/HttpServerResponse.h"
 
+#include "Web3AuthError.h"
 
 #if PLATFORM_ANDROID
 #include "../../../Launch/Public/Android/AndroidJNI.h"
 #include "Android/AndroidApplication.h"
 #endif
 
-#include "Web3AuthError.h"
+#if PLATFORM_IOS
+#include "IOS/ObjC/WebAuthenticate.h"
+#endif
 
 #include "Web3Auth.generated.h"
-
-
 
 UENUM(BlueprintType)
 enum class FDisplay : uint8

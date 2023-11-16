@@ -7,6 +7,9 @@
 #pragma warning(disable:4996)
 #pragma comment(lib,"WS2_32.Lib") //Winsock Library
 
+#pragma comment(lib, "crypt32.lib")
+#pragma comment(lib, "WS2_32.lib")
+
 #define UI UI_ST
 THIRD_PARTY_INCLUDES_START
 #include <openssl/ec.h>
@@ -25,6 +28,8 @@ THIRD_PARTY_INCLUDES_END
 
 #include "Misc/SecureHash.h"
 #include <string>
+#include <iostream>
+#include <vector>
 #include "Keccak256.h"
 
 #include "ECCrypto.generated.h"
