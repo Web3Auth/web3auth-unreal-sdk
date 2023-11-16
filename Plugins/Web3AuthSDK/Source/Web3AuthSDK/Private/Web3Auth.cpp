@@ -231,9 +231,6 @@ void AWeb3Auth::setResultUrl(FString hash) {
 
 	UE_LOG(LogTemp, Warning, TEXT("respose json %s"), *json);
 
-
-	// FWeb3AuthResponse web3AuthResponse;
-
 	if (!FJsonObjectConverter::JsonObjectStringToUStruct(json, &web3AuthResponse, 0, 0)) {
 		UE_LOG(LogTemp, Warning, TEXT("failed to parse json"));
 	}
@@ -446,8 +443,6 @@ void AWeb3Auth::authorizeSession() {
 					FString json;
 					TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&json);
 					FJsonSerializer::Serialize(tempJson.ToSharedRef(), Writer);
-
-					// FWeb3AuthResponse web3AuthResponse;
 
 					if (!FJsonObjectConverter::JsonObjectStringToUStruct(json, &web3AuthResponse, 0, 0)) {
 						UE_LOG(LogTemp, Error, TEXT("failed to parse json"));

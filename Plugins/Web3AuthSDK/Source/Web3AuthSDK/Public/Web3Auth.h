@@ -27,6 +27,7 @@
 #include "Android/AndroidApplication.h"
 #endif
 
+#include "Web3AuthError.h"
 
 #include "Web3Auth.generated.h"
 
@@ -128,7 +129,6 @@ enum class FBuildEnv : uint8
     STAGING,
 	TESTING
 };
-
 
 USTRUCT(BlueprintType)
 struct WEB3AUTHSDK_API FExtraLoginOptions
@@ -522,7 +522,6 @@ struct FWeb3AuthOptions
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
         bool useCoreKitKey;
 
-
 	FWeb3AuthOptions() {};
 
 	void operator= (const FWeb3AuthOptions& other) {
@@ -656,14 +655,14 @@ public:
 		return output;
 	}
 
-	UFUNCTION(BlueprintCallable)
-        FString getPrivKey();
+    UFUNCTION(BlueprintCallable)
+    		FString getPrivKey();
 
     UFUNCTION(BlueprintCallable)
-        FString getEd25519PrivKey();
+    		FString getEd25519PrivKey();
 
     UFUNCTION(BlueprintCallable)
-        FUserInfo getUserInfo();
+    		FUserInfo getUserInfo();
 
     #if PLATFORM_IOS
     static void callBackFromWebAuthenticateIOS(NSString* sResult);
