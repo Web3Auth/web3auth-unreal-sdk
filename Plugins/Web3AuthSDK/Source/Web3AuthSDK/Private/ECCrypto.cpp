@@ -245,13 +245,16 @@ FString generateECPrivateKey()
     return privateKeyHex;
 }
 
-std::vector<byte> generateRandomBytes()
+/*
+std::vector<Byte> generateRandomBytes()
 {
-    AutoSeededRandomPool rng;
-    std::vector<byte> bytes(16);
+    AutoSeededRandomPool rng; // crypto++ library needs to be included to be able to use this type
+							  // however would it not be sufficient to generate a private key and take half of the output instead here?
+    std::vector<Byte> bytes(16);
     rng.GenerateBlock(bytes.data(), bytes.size());
     return bytes;
 }
+*/
 
 UECCrypto::~UECCrypto()
 {

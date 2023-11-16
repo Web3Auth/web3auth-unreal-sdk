@@ -2,6 +2,7 @@
 
 
 #include "Web3Auth.h"
+#include "Web3AuthError.h"
 
 #if PLATFORM_IOS
 #include "IOS/ObjC/WebAuthenticate.h"
@@ -101,7 +102,7 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
         case FBuildEnv::STAGING:
         	initParams->SetStringField("buildEnv", "staging");
         	break;
-    2}
+    }
 
 	if (web3AuthOptions.whiteLabel.name != "") {
 		FString output;
@@ -129,7 +130,7 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	}
 
 	paramMap->SetObjectField("options", initParams.ToSharedRef());
-	paramMap->SetObjectField("actionType", "login");
+	paramMap->SetStringField("actionType", "login");
 
 	
 	TSharedPtr<FJsonObject> params = MakeShareable(new FJsonObject);
