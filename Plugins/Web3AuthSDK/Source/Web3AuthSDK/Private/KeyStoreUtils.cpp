@@ -16,15 +16,15 @@ void UKeyStoreUtils::Add(FString key, FString value) {
 }
 
 FString UKeyStoreUtils::Get(FString key) {
-	if (StorageInstance->KeyValuePairs.Contains(key)) {
-		return StorageInstance->KeyValuePairs[key];
+	FString* value = StorageInstance->KeyValuePairs.Find(key);
+	if (value == nullptr) {
+		return FString();
 	}
-	return "";
+
+	return *value;
 }
 
 void UKeyStoreUtils::Remove(FString key) {
-	if (StorageInstance->KeyValuePairs.Contains(key)) {
-		StorageInstance->KeyValuePairs.Remove(key);
-		UGameplayStatics::SaveGameToSlot(StorageInstance, TEXT("Web3AuthDataSlot"), 0);
-	}
+	StorageInstance->KeyValuePairs.Remove(key);
+	UGameplayStatics::SaveGameToSlot(StorageInstance, TEXT("Web3AuthDataSlot"), 0);
 }
