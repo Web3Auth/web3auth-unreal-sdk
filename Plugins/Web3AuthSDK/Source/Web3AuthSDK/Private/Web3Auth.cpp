@@ -219,15 +219,11 @@ void AWeb3Auth::setResultUrl(FString hash) {
 	}
 
 	if (web3AuthResponse.privKey.IsEmpty() || web3AuthResponse.privKey == "0000000000000000000000000000000000000000000000000000000000000000") {
-		AsyncTask(ENamedThreads::GameThread, [=]() {
-			AWeb3Auth::logoutEvent.ExecuteIfBound();
-		});	
+		AWeb3Auth::logoutEvent.ExecuteIfBound();
 	}
 	else {
-		AWeb3Auth::keyStoreUtils->Add("sessionid", web3AuthResponse.sessionId);
-		AsyncTask(ENamedThreads::GameThread, [=]() {
-			AWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
-		});
+		AWeb3Auth::keyStoreUtils->Assign(web3AuthResponse.sessionId);
+		AWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
 	}
 }
 
@@ -394,7 +390,7 @@ void AWeb3Auth::EndPlay(const EEndPlayReason::Type EndPlayReason) {
 }
 
 void AWeb3Auth::authorizeSession() {
-	FString sessionId = AWeb3Auth::keyStoreUtils->Get("sessionid");
+	FString sessionId = AWeb3Auth::keyStoreUtils->Get();
 	if (!sessionId.IsEmpty()) {
 		FString pubKey = crypto->generatePublicKey(sessionId);
 		UE_LOG(LogTemp, Log, TEXT("public key %s"), *pubKey);
@@ -433,9 +429,7 @@ void AWeb3Auth::authorizeSession() {
 						return;
 					}
 
-					AsyncTask(ENamedThreads::GameThread, [=]() {
-						AWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
-						});
+					AWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
 				}
 
 		});
@@ -443,7 +437,7 @@ void AWeb3Auth::authorizeSession() {
 }
 
 void AWeb3Auth::sessionTimeout() {
-	FString sessionId = AWeb3Auth::keyStoreUtils->Get("sessionid");
+	FString sessionId = AWeb3Auth::keyStoreUtils->Get();
 
 	if (!sessionId.IsEmpty()) {
 		FString pubKey = crypto->generatePublicKey(sessionId);
@@ -480,10 +474,8 @@ void AWeb3Auth::sessionTimeout() {
 				web3AuthApi->Logout(request, [](FString response)
 					{
 						UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response);
-						AWeb3Auth::keyStoreUtils->Remove("sessionId");
-						AsyncTask(ENamedThreads::GameThread, [=]() {
-							AWeb3Auth::logoutEvent.ExecuteIfBound();
-						});
+						AWeb3Auth::keyStoreUtils->Clear();
+						AWeb3Auth::logoutEvent.ExecuteIfBound();
 					});
 		});
 
