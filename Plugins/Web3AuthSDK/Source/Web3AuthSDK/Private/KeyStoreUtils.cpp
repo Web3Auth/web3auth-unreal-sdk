@@ -24,7 +24,7 @@ void UKeyStoreUtils::Add(FString key, FString value) {
 		return;
 	}
 	StorageInstance->KeyValuePairs.Add(key, value);
-	UGameplayStatics::SaveGameToSlot(StorageInstance, TEXT("Web3AuthDataSlot"), 0);
+	//UGameplayStatics::SaveGameToSlot(StorageInstance, TEXT("Web3AuthDataSlot"), 0);
 }
 
 FString UKeyStoreUtils::Get(FString key) {
@@ -48,5 +48,5 @@ void UKeyStoreUtils::Remove(FString key) {
 		return;
 	}
 	StorageInstance->KeyValuePairs.Remove(key);
-	UGameplayStatics::SaveGameToSlot(StorageInstance, TEXT("Web3AuthDataSlot"), 0);
+	//UGameplayStatics::SaveGameToSlot(StorageInstance, TEXT("Web3AuthDataSlot"), 0);
 }
