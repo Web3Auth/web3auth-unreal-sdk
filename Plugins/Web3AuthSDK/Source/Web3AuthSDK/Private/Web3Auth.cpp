@@ -224,7 +224,7 @@ void AWeb3Auth::setResultUrl(FString hash) {
 		});	
 	}
 	else {
-		AWeb3Auth::keyStoreUtils->Add("sessionid", web3AuthResponse.sessionId);
+		AWeb3Auth::keyStoreUtils->Add(FString("sessionid"), web3AuthResponse.sessionId);
 		AsyncTask(ENamedThreads::GameThread, [=]() {
 			AWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
 		});
