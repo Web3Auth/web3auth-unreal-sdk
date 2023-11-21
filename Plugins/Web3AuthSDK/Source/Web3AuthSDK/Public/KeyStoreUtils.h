@@ -14,7 +14,7 @@ class UWeb3StorageAdapter : public USaveGame
 	GENERATED_BODY()
 public:
 	UPROPERTY()
-		TMap<FString, FString> KeyValuePairs;
+		FString sessionId;
 };
 
 UCLASS()
@@ -24,9 +24,9 @@ class WEB3AUTHSDK_API UKeyStoreUtils : public UObject
 private:
 	UWeb3StorageAdapter* StorageInstance;
 public:
-	void Add(FString key, FString value);
-	FString Get(FString key);
-	void Remove(FString key);
+	void Assign(FString value);
+	FString Get();
+	void Clear();
 public:
 	UKeyStoreUtils();
 	~UKeyStoreUtils();
