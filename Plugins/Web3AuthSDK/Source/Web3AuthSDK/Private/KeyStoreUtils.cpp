@@ -17,36 +17,31 @@ UKeyStoreUtils::UKeyStoreUtils() {
 UKeyStoreUtils::~UKeyStoreUtils() {
 }
 
-void UKeyStoreUtils::Add(FString key, FString value) {
+void UKeyStoreUtils::Assign(FString value) {
 	if (StorageInstance == nullptr)
 	{
 		// log error here
 		return;
 	}
-	StorageInstance->KeyValuePairs.Add(key, value);
+	StorageInstance->sessionId = value;
 	//UGameplayStatics::SaveGameToSlot(StorageInstance, TEXT("Web3AuthDataSlot"), 0);
 }
 
-FString UKeyStoreUtils::Get(FString key) {
+FString UKeyStoreUtils::Get() {
 	if (StorageInstance == nullptr)
 	{
 		// log error here
 		return FString();
 	}
-	FString* value = StorageInstance->KeyValuePairs.Find(key);
-	if (value == nullptr) {
-		return FString();
-	}
-
-	return *value;
+	return StorageInstance->sessionId;
 }
 
-void UKeyStoreUtils::Remove(FString key) {
+void UKeyStoreUtils::Clear() {
 	if (StorageInstance == nullptr)
 	{
 		// log error here
 		return;
 	}
-	StorageInstance->KeyValuePairs.Remove(key);
+	StorageInstance->sessionId = FString();
 	//UGameplayStatics::SaveGameToSlot(StorageInstance, TEXT("Web3AuthDataSlot"), 0);
 }
