@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -22,12 +20,18 @@ class WEB3AUTHSDK_API UKeyStoreUtils : public UObject
 {
 	GENERATED_BODY()
 private:
-	UWeb3StorageAdapter* StorageInstance;
+	UPROPERTY()
+    	UWeb3StorageAdapter* StorageInstance;
+		// Int UserIndex
+		// FString SlotName
+
+	UWeb3StorageAdapter* GetInstance();
 public:
 	void Assign(FString value);
 	FString Get();
 	void Clear();
 public:
+    // UKeyStoreUtils(FString filename, Int user);
 	UKeyStoreUtils();
 	~UKeyStoreUtils();
 };

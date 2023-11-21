@@ -3,10 +3,6 @@
 #include <vector>
 #include <iostream>
 
-#pragma comment(lib, "crypt32.lib")
-#pragma comment(lib, "WS2_32.lib")
-
-
 unsigned char* toByteArray(const std::string& s) {
 	size_t len = s.length() / 2;
 	unsigned char* data = new unsigned char[len];
