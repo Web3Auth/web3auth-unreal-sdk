@@ -1,10 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-
 
 #include "Json.h"
 #include "JsonUtilities.h"
@@ -13,7 +10,6 @@
 #include "KeyStoreUtils.h"
 #include "ECCrypto.h"
 #include "Web3AuthApi.h"
-
 
 #include "Runtime/Online/HTTPServer/Public/HttpPath.h"
 #include "Runtime/Online/HTTPServer/Public/IHttpRouter.h"
@@ -28,9 +24,7 @@
 #endif
 
 #include "Web3AuthError.h"
-
 #include "Web3Auth.generated.h"
-
 
 
 UENUM(BlueprintType)
@@ -443,8 +437,6 @@ struct FUserInfo
 
 };
 
-
-
 USTRUCT(BlueprintType)
 struct FWhiteLabelData
 {
@@ -480,7 +472,6 @@ struct FWhiteLabelData
 	}
 
 };
-
 
 USTRUCT(BlueprintType)
 struct FWeb3AuthOptions
@@ -526,7 +517,6 @@ struct FWeb3AuthOptions
 
 };
 
-
 USTRUCT(BlueprintType)
 struct FWeb3AuthResponse
 {
@@ -556,7 +546,6 @@ struct FWeb3AuthResponse
 	FWeb3AuthResponse() {};
 
 };
-
 USTRUCT(BlueprintType)
 struct FShareMetaData
 {
@@ -579,7 +568,6 @@ public:
 
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnLogin, FWeb3AuthResponse, response);
 DECLARE_DYNAMIC_DELEGATE(FOnLogout);
-
 
 UCLASS()
 class WEB3AUTHSDK_API AWeb3Auth : public AActor
