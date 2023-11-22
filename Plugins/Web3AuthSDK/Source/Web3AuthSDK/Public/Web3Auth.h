@@ -570,7 +570,7 @@ DECLARE_DYNAMIC_DELEGATE_OneParam(FOnLogin, FWeb3AuthResponse, response);
 DECLARE_DYNAMIC_DELEGATE(FOnLogout);
 
 UCLASS()
-class WEB3AUTHSDK_API AWeb3Auth : public AActor
+class WEB3AUTHSDK_API UWeb3Auth : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 
@@ -588,20 +588,10 @@ class WEB3AUTHSDK_API AWeb3Auth : public AActor
 	static UECCrypto* crypto;
 
 	UWeb3AuthApi* web3AuthApi = UWeb3AuthApi::GetInstance();
-
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
+    virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+    virtual void Deinitialize() override;
 public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-public:
-	AWeb3Auth();
-
 	UFUNCTION(BlueprintCallable)
 		void setOptions(FWeb3AuthOptions web3authOptions);
 
@@ -643,8 +633,6 @@ public:
     #if PLATFORM_IOS
     static void callBackFromWebAuthenticateIOS(NSString* sResult);
     #endif
-    
-	~AWeb3Auth();
 private:
 	void request(FString  path, FLoginParams* loginParams, TSharedPtr<FJsonObject> extraParam);
 
