@@ -75,4 +75,4 @@ DerivedDataCache/*
 /Config/HoloLens
 
 # MAC
-.DS_Store
+**/*.DS_Store
