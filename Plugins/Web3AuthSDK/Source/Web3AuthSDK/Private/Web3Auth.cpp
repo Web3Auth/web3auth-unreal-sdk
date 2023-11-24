@@ -1,14 +1,20 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
+
 #include "Web3Auth.h"
+#include "Web3AuthError.h"
 
-FOnLogin AWeb3Auth::loginEvent;
-FOnLogout AWeb3Auth::logoutEvent;
+#if PLATFORM_IOS
+#include "IOS/ObjC/WebAuthenticate.h"
+#endif
 
-FWeb3AuthResponse AWeb3Auth::web3AuthResponse;
+FOnLogin UWeb3Auth::loginEvent;
+FOnLogout UWeb3Auth::logoutEvent;
 
-UKeyStoreUtils* AWeb3Auth::keyStoreUtils;
-UECCrypto* AWeb3Auth::crypto;
+FWeb3AuthResponse UWeb3Auth::web3AuthResponse;
+
+UKeyStoreUtils* UWeb3Auth::keyStoreUtils;
+UECCrypto* UWeb3Auth::crypto;
 
 #if PLATFORM_ANDROID
 JNI_METHOD void Java_com_epicgames_unreal_GameActivity_onDeepLink(JNIEnv* env, jclass clazz, jstring uri) {
@@ -18,14 +24,14 @@ JNI_METHOD void Java_com_epicgames_unreal_GameActivity_onDeepLink(JNIEnv* env, j
 		FString result = FString(UTF8_TO_TCHAR(UTFString));
 		UE_LOG(LogTemp, Warning, TEXT("redirect %s"), *result);
 
-		AWeb3Auth::setResultUrl(result);
+		UWeb3Auth::setResultUrl(result);
 
 		Env->ReleaseStringUTFChars(uri, UTFString);
 		Env->DeleteLocalRef(uri);
 	}
 }
 
-void AWeb3Auth::CallJniVoidMethod(JNIEnv* Env, const jclass Class, jmethodID Method, ...) {
+void UWeb3Auth::CallJniVoidMethod(JNIEnv* Env, const jclass Class, jmethodID Method, ...) {
 	va_list Args;
 	va_start(Args, Method);
 	Env->CallStaticVoidMethodV(Class, Method, Args);
@@ -35,14 +41,7 @@ void AWeb3Auth::CallJniVoidMethod(JNIEnv* Env, const jclass Class, jmethodID Met
 }
 #endif
 
-// Sets default values
-AWeb3Auth::AWeb3Auth()
-{
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-}
-
-void AWeb3Auth::setOptions(FWeb3AuthOptions options) {
+void UWeb3Auth::setOptions(FWeb3AuthOptions options) {
 	this->web3AuthOptions = options;
 	this->keyStoreUtils = NewObject<UKeyStoreUtils>();
 	this->crypto = NewObject<UECCrypto>();
@@ -50,7 +49,7 @@ void AWeb3Auth::setOptions(FWeb3AuthOptions options) {
 	authorizeSession();
 }
 
-void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TSharedPtr<FJsonObject> extraParams = NULL) {
+void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TSharedPtr<FJsonObject> extraParams = NULL) {
 	TSharedPtr<FJsonObject> paramMap = MakeShareable(new FJsonObject);
 
 
@@ -177,29 +176,16 @@ void AWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 #endif
 }
 
-void AWeb3Auth::processLogin(FLoginParams loginParams) {
+void UWeb3Auth::processLogin(FLoginParams loginParams) {
 	UE_LOG(LogTemp, Warning, TEXT("login called"));
 	this->request("start", &loginParams);
 }
 
-/*void AWeb3Auth::logout(FJsonObject params) {
-	this->request("logout", NULL, &params);
-}*/
-
-void AWeb3Auth::proccessLogout(FString redirectUrl, FString appState) {
-	TSharedPtr<FJsonObject> extraParams = MakeShareable(new FJsonObject);
-
-	if (redirectUrl != "")
-		extraParams->SetStringField("redirectUrl", redirectUrl);
-
-	if (appState != "")
-		extraParams->SetStringField("appState", appState);
-
-	//this->request("logout", NULL, extraParams);
+void UWeb3Auth::processLogout() {
 	sessionTimeout();
 }
 
-void AWeb3Auth::setResultUrl(FString hash) {
+void UWeb3Auth::setResultUrl(FString hash) {
 	
 	if (hash.IsEmpty()) {
 		return;
@@ -234,20 +220,20 @@ void AWeb3Auth::setResultUrl(FString hash) {
 	}
 
 	if (web3AuthResponse.privKey.IsEmpty() || web3AuthResponse.privKey == "0000000000000000000000000000000000000000000000000000000000000000") {
-		AWeb3Auth::logoutEvent.ExecuteIfBound();
+		UWeb3Auth::logoutEvent.ExecuteIfBound();
 	}
 	else {
-		AWeb3Auth::keyStoreUtils->Assign(web3AuthResponse.sessionId);
-		AWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
+		UWeb3Auth::keyStoreUtils->Assign(web3AuthResponse.sessionId);
+		UWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
 	}
 }
 
 template <typename StructType>
-void AWeb3Auth::GetJsonStringFromStruct(StructType FilledStruct, FString& StringOutput) {
+void UWeb3Auth::GetJsonStringFromStruct(StructType FilledStruct, FString& StringOutput) {
 	FJsonObjectConverter::UStructToJsonObjectString(StructType::StaticStruct(), &FilledStruct, StringOutput, 0, 0);
 }
 
-FString AWeb3Auth::startLocalWebServer() {
+FString UWeb3Auth::startLocalWebServer() {
 	FHttpServerModule& httpServerModule = FHttpServerModule::Get();
 
 	httpServerModule.StopAllListeners();
@@ -279,11 +265,11 @@ FString AWeb3Auth::startLocalWebServer() {
 }
 
 
-bool AWeb3Auth::requestAuthCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) {
+bool UWeb3Auth::requestAuthCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) {
 	FString code = Request.QueryParams["code"];
 
 	if (!code.IsEmpty()) {
-		AWeb3Auth::setResultUrl(code);
+		UWeb3Auth::setResultUrl(code);
 	}
 
 	TUniquePtr<FHttpServerResponse> response = FHttpServerResponse::Create(TEXT("OK"), TEXT("text/html"));
@@ -298,7 +284,7 @@ bool AWeb3Auth::requestAuthCallback(const FHttpServerRequest& Request, const FHt
 	return true;
 }
 
-bool AWeb3Auth::requestCompleteCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete)
+bool UWeb3Auth::requestCompleteCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete)
 {
 	FString text = R"html(
 		<!DOCTYPE html>
@@ -345,22 +331,23 @@ bool AWeb3Auth::requestCompleteCallback(const FHttpServerRequest& Request, const
 	return true;
 }
 
-void AWeb3Auth::setLoginEvent(FOnLogin _event) {
+void UWeb3Auth::setLoginEvent(FOnLogin _event) {
 	loginEvent = _event;
 }
 
-void AWeb3Auth::setLogoutEvent(FOnLogout _event) {
+void UWeb3Auth::setLogoutEvent(FOnLogout _event) {
 	logoutEvent = _event;
 }
 
 #if PLATFORM_IOS
-void AWeb3Auth::callBackFromWebAuthenticateIOS(NSString* sResult) {
+void UWeb3Auth::callBackFromWebAuthenticateIOS(NSString* sResult) {
     FString result = FString(sResult);
-    AWeb3Auth::setResultUrl(result);
+    UWeb3Auth::setResultUrl(result);
 }
 #endif
 
-FString AWeb3Auth::getPrivKey() {
+
+FString UWeb3Auth::getPrivKey() {
 	if (web3AuthResponse.coreKitKey.IsEmpty() || web3AuthResponse.privKey.IsEmpty()) {
 		return "";
 	}
@@ -368,7 +355,7 @@ FString AWeb3Auth::getPrivKey() {
 	return web3AuthOptions.useCoreKitKey ? web3AuthResponse.coreKitKey : web3AuthResponse.privKey;
 }
 
-FString AWeb3Auth::getEd25519PrivKey() {
+FString UWeb3Auth::getEd25519PrivKey() {
 	if (web3AuthResponse.coreKitEd25519PrivKey.IsEmpty() || web3AuthResponse.ed25519PrivKey.IsEmpty()) {
 		return "";
 	}
@@ -376,7 +363,7 @@ FString AWeb3Auth::getEd25519PrivKey() {
 	return web3AuthOptions.useCoreKitKey ? web3AuthResponse.coreKitEd25519PrivKey : web3AuthResponse.ed25519PrivKey;
 }
 
-FUserInfo AWeb3Auth::getUserInfo() {
+FUserInfo UWeb3Auth::getUserInfo() {
 	if (web3AuthResponse.userInfo.IsEmpty()) {
 		FString error = Web3AuthError::getError(ErrorCode::NOUSERFOUND);
 		UE_LOG(LogTemp, Fatal, TEXT("%s"), *error);
@@ -387,24 +374,8 @@ FUserInfo AWeb3Auth::getUserInfo() {
 	return web3AuthResponse.userInfo;
 }
 
-void AWeb3Auth::BeginPlay() {
-	Super::BeginPlay();
-}
-
-
-void AWeb3Auth::EndPlay(const EEndPlayReason::Type EndPlayReason) {
-	Super::EndPlay(EndPlayReason);
-
-	FHttpServerModule::Get().StopAllListeners();
-
-	for (auto route : httpRoutes) {
-		route.Key->UnbindRoute(route.Value);
-	}
-	httpRoutes.Empty();
-}
-
-void AWeb3Auth::authorizeSession() {
-	FString sessionId = AWeb3Auth::keyStoreUtils->Get();
+void UWeb3Auth::authorizeSession() {
+	FString sessionId = UWeb3Auth::keyStoreUtils->Get();
 	if (!sessionId.IsEmpty()) {
 		FString pubKey = crypto->generatePublicKey(sessionId);
 		UE_LOG(LogTemp, Log, TEXT("public key %s"), *pubKey);
@@ -443,15 +414,15 @@ void AWeb3Auth::authorizeSession() {
 						return;
 					}
 
-					AWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
+					UWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
 				}
 
 		});
 	}
 }
 
-void AWeb3Auth::sessionTimeout() {
-	FString sessionId = AWeb3Auth::keyStoreUtils->Get();
+void UWeb3Auth::sessionTimeout() {
+	FString sessionId = UWeb3Auth::keyStoreUtils->Get();
 
 	if (!sessionId.IsEmpty()) {
 		FString pubKey = crypto->generatePublicKey(sessionId);
@@ -488,19 +459,25 @@ void AWeb3Auth::sessionTimeout() {
 				web3AuthApi->Logout(request, [](FString response)
 					{
 						UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response);
-						AWeb3Auth::keyStoreUtils->Clear();
-						AWeb3Auth::logoutEvent.ExecuteIfBound();
+						UWeb3Auth::keyStoreUtils->Clear();
+						UWeb3Auth::logoutEvent.ExecuteIfBound();
 					});
 		});
 
 	}
 }
 
-
-void AWeb3Auth::Tick(float DeltaTime) {
-	Super::Tick(DeltaTime);
+void UWeb3Auth::Initialize(FSubsystemCollectionBase& Collection) {
+	Super::Initialize(Collection);
 }
 
-AWeb3Auth::~AWeb3Auth() {
+void UWeb3Auth::Deinitialize() {
+	Super::Deinitialize();
+	FHttpServerModule::Get().StopAllListeners();
+
+	for (auto route : httpRoutes) {
+		route.Key->UnbindRoute(route.Value);
+	}
+	httpRoutes.Empty();
 }
 

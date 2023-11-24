@@ -1,11 +1,12 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
-#include "CoreMinimal.h"
+#if PLATFORM_WINDOWS
+	#pragma warning(disable:4996)
+	#pragma comment(lib, "crypt32.lib")
+	#pragma comment(lib, "WS2_32.lib")
+#endif
 
-#pragma warning(disable:4996)
-#pragma comment(lib,"WS2_32.Lib") //Winsock Library
+#include "CoreMinimal.h"
 
 #pragma comment(lib, "crypt32.lib")
 #pragma comment(lib, "WS2_32.lib")
@@ -31,7 +32,6 @@ THIRD_PARTY_INCLUDES_END
 #include <iostream>
 #include <vector>
 #include "Keccak256.h"
-
 #include "ECCrypto.generated.h"
 
 UCLASS()

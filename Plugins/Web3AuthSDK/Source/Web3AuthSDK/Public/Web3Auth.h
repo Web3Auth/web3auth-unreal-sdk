@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -19,18 +17,15 @@
 #include "Runtime/Online/HTTPServer/Public/HttpServerModule.h"
 #include "Runtime/Online/HTTPServer/Public/HttpServerResponse.h"
 
-#include "Web3AuthError.h"
 
 #if PLATFORM_ANDROID
 #include "../../../Launch/Public/Android/AndroidJNI.h"
 #include "Android/AndroidApplication.h"
 #endif
 
-#if PLATFORM_IOS
-#include "IOS/ObjC/WebAuthenticate.h"
-#endif
-
+#include "Web3AuthError.h"
 #include "Web3Auth.generated.h"
+
 
 UENUM(BlueprintType)
 enum class FDisplay : uint8
@@ -435,22 +430,20 @@ struct FUserInfo
 	FUserInfo() {};
 
 	bool IsEmpty() const {
-        		return email.IsEmpty()
-        			&& name.IsEmpty()
-        			&& profileImage.IsEmpty()
-        			&& aggregateVerifier.IsEmpty()
-        			&& verifier.IsEmpty()
-        			&& verifierId.IsEmpty()
-        			&& typeOfLogin.IsEmpty()
-        			&& dappShare.IsEmpty()
-        			&& idToken.IsEmpty()
-        			&& oAuthIdToken.IsEmpty()
-        			&& oAuthAccessToken.IsEmpty();
+    		return email.IsEmpty()
+    			&& name.IsEmpty()
+    			&& profileImage.IsEmpty()
+    			&& aggregateVerifier.IsEmpty()
+    			&& verifier.IsEmpty()
+    			&& verifierId.IsEmpty()
+    			&& typeOfLogin.IsEmpty()
+    			&& dappShare.IsEmpty()
+    			&& idToken.IsEmpty()
+    			&& oAuthIdToken.IsEmpty()
+    			&& oAuthAccessToken.IsEmpty();
     }
 
 };
-
-
 
 USTRUCT(BlueprintType)
 struct FWhiteLabelData
@@ -487,7 +480,6 @@ struct FWhiteLabelData
 	}
 
 };
-
 
 USTRUCT(BlueprintType)
 struct FWeb3AuthOptions
@@ -537,7 +529,6 @@ struct FWeb3AuthOptions
 
 };
 
-
 USTRUCT(BlueprintType)
 struct FWeb3AuthResponse
 {
@@ -567,7 +558,6 @@ struct FWeb3AuthResponse
 	FWeb3AuthResponse() {};
 
 };
-
 USTRUCT(BlueprintType)
 struct FShareMetaData
 {
@@ -591,9 +581,8 @@ public:
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnLogin, FWeb3AuthResponse, response);
 DECLARE_DYNAMIC_DELEGATE(FOnLogout);
 
-
 UCLASS()
-class WEB3AUTHSDK_API AWeb3Auth : public AActor
+class WEB3AUTHSDK_API UWeb3Auth : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 
@@ -606,25 +595,14 @@ class WEB3AUTHSDK_API AWeb3Auth : public AActor
 	static FOnLogin loginEvent;
 	static FOnLogout logoutEvent;
 
-
 	static UKeyStoreUtils* keyStoreUtils;
 	static UECCrypto* crypto;
 
 	UWeb3AuthApi* web3AuthApi = UWeb3AuthApi::GetInstance();
-
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
+    virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+    virtual void Deinitialize() override;
 public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-public:
-	AWeb3Auth();
-
 	UFUNCTION(BlueprintCallable)
 		void setOptions(FWeb3AuthOptions web3authOptions);
 
@@ -635,7 +613,7 @@ public:
 		void logout(FJsonObject params);*/
 
 	UFUNCTION(BlueprintCallable)
-		void proccessLogout(FString redirectUrl = "", FString appState = "");
+		void processLogout();
 
 	UFUNCTION(BlueprintCallable)
 		static void setResultUrl(FString code);
@@ -666,8 +644,6 @@ public:
     #if PLATFORM_IOS
     static void callBackFromWebAuthenticateIOS(NSString* sResult);
     #endif
-    
-	~AWeb3Auth();
 private:
 	void request(FString  path, FLoginParams* loginParams, TSharedPtr<FJsonObject> extraParam);
 

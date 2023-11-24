@@ -1,4 +1,7 @@
 #include "ECCrypto.h"
+#include <string>
+#include <vector>
+#include <iostream>
 
 unsigned char* toByteArray(const std::string& s) {
 	size_t len = s.length() / 2;
