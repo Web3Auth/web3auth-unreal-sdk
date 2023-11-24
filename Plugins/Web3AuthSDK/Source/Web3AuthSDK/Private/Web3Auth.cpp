@@ -160,20 +160,7 @@ void UWeb3Auth::processLogin(FLoginParams loginParams) {
 	this->request("login", &loginParams);
 }
 
-/*void UWeb3Auth::logout(FJsonObject params) {
-	this->request("logout", NULL, &params);
-}*/
-
-void UWeb3Auth::proccessLogout(FString redirectUrl, FString appState) {
-	TSharedPtr<FJsonObject> extraParams = MakeShareable(new FJsonObject);
-
-	if (redirectUrl != "")
-		extraParams->SetStringField("redirectUrl", redirectUrl);
-
-	if (appState != "")
-		extraParams->SetStringField("appState", appState);
-
-	//this->request("logout", NULL, extraParams);
+void UWeb3Auth::processLogout() {
 	sessionTimeout();
 }
 

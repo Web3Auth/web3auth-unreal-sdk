@@ -30,7 +30,6 @@ public:
 	void Assign(FString value);
 	FString Get();
 	void Clear();
-public:
     // UKeyStoreUtils(FString filename, Int user);
 	UKeyStoreUtils();
 	~UKeyStoreUtils();

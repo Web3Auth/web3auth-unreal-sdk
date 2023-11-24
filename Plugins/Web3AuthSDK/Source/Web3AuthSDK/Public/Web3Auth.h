@@ -583,7 +583,6 @@ class WEB3AUTHSDK_API UWeb3Auth : public UGameInstanceSubsystem
 	static FOnLogin loginEvent;
 	static FOnLogout logoutEvent;
 
-
 	static UKeyStoreUtils* keyStoreUtils;
 	static UECCrypto* crypto;
 
@@ -602,7 +601,7 @@ public:
 		void logout(FJsonObject params);*/
 
 	UFUNCTION(BlueprintCallable)
-		void proccessLogout(FString redirectUrl = "", FString appState = "");
+		void processLogout();
 
 	UFUNCTION(BlueprintCallable)
 		static void setResultUrl(FString code);
