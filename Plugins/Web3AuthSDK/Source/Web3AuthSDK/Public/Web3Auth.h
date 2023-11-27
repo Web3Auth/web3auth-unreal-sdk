@@ -573,22 +573,22 @@ class WEB3AUTHSDK_API UWeb3Auth : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 
-	FWeb3AuthOptions web3AuthOptions;
-	static FWeb3AuthResponse web3AuthResponse;
-
 	TSharedPtr<IHttpRouter> httpRouter;
 	TArray<TPair<TSharedPtr<IHttpRouter>, FHttpRouteHandle>> httpRoutes;
-
-	static FOnLogin loginEvent;
-	static FOnLogout logoutEvent;
-
-	static UECCrypto* crypto;
-
+	FWeb3AuthResponse web3AuthResponse;
+	UPROPERTY(Transient)
+	UECCrypto* crypto;
+	UPROPERTY(Transient)
 	UWeb3AuthApi* web3AuthApi = UWeb3AuthApi::GetInstance();
+	FWeb3AuthOptions web3AuthOptions;
+	FOnLogin loginEvent;
+	FOnLogout logoutEvent;
+
 protected:
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     virtual void Deinitialize() override;
 public:
+
 	UPROPERTY()
 	FString sessionId = FString();
 

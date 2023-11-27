@@ -8,13 +8,6 @@
 #include "IOS/ObjC/WebAuthenticate.h"
 #endif
 
-FOnLogin UWeb3Auth::loginEvent;
-FOnLogout UWeb3Auth::logoutEvent;
-
-FWeb3AuthResponse UWeb3Auth::web3AuthResponse;
-
-UECCrypto* UWeb3Auth::crypto;
-
 #if PLATFORM_ANDROID
 JNI_METHOD void Java_com_epicgames_unreal_GameActivity_onDeepLink(JNIEnv* env, jclass clazz, jstring uri) {
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true)) {
@@ -195,11 +188,11 @@ void UWeb3Auth::setResultUrl(FString hash) {
 	}
 
 	if (web3AuthResponse.privKey.IsEmpty() || web3AuthResponse.privKey == "0000000000000000000000000000000000000000000000000000000000000000") {
-		UWeb3Auth::logoutEvent.ExecuteIfBound();
+		this->logoutEvent.ExecuteIfBound();
 	}
 	else {
 		this->sessionId = web3AuthResponse.sessionId;
-		UWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
+		this->loginEvent.ExecuteIfBound(web3AuthResponse);
 	}
 }
 
@@ -354,7 +347,7 @@ void UWeb3Auth::authorizeSession() {
 		FString pubKey = crypto->generatePublicKey(this->sessionId);
 		UE_LOG(LogTemp, Log, TEXT("public key %s"), *pubKey);
 		FString session = this->sessionId;
-		web3AuthApi->AuthorizeSession(pubKey, [session](FStoreApiResponse response)
+		web3AuthApi->AuthorizeSession(pubKey, [session, this](FStoreApiResponse response)
 			{
 				UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response.message);
 
@@ -388,7 +381,7 @@ void UWeb3Auth::authorizeSession() {
 						return;
 					}
 
-					UWeb3Auth::loginEvent.ExecuteIfBound(web3AuthResponse);
+					this->loginEvent.ExecuteIfBound(web3AuthResponse);
 				}
 
 		});
@@ -400,9 +393,7 @@ void UWeb3Auth::sessionTimeout() {
 	if (!this->sessionId.IsEmpty()) {
 		FString pubKey = crypto->generatePublicKey(this->sessionId);
 		UE_LOG(LogTemp, Log, TEXT("public key %s"), *pubKey);
-		FString session = this->sessionId;
-		bool loggedOut = false;
-		web3AuthApi->AuthorizeSession(pubKey, [&loggedOut, pubKey, session, this](FStoreApiResponse response)
+		web3AuthApi->AuthorizeSession(pubKey, [pubKey, this](FStoreApiResponse response)
 			{
 				FShareMetaData shareMetaData;
 
@@ -411,7 +402,7 @@ void UWeb3Auth::sessionTimeout() {
 					return;
 				}
 
-				FString encryptedData = crypto->encrypt("", session, shareMetaData.ephemPublicKey, shareMetaData.iv);
+				FString encryptedData = crypto->encrypt("", this->sessionId, shareMetaData.ephemPublicKey, shareMetaData.iv);
 				shareMetaData.ciphertext = encryptedData;
 
 
@@ -421,24 +412,21 @@ void UWeb3Auth::sessionTimeout() {
 				FString jsonString;
 				TSharedRef<TJsonWriter<TCHAR>> jsonWriter = TJsonWriterFactory<>::Create(&jsonString);
 				FJsonSerializer::Serialize(jsonObject.ToSharedRef(), jsonWriter);
-				FString sig = crypto->generateECDSASignature(session, jsonString);
-				
+				FString sig = crypto->generateECDSASignature(this->sessionId, jsonString);
+
 				FLogoutApiRequest request;
 				request.data = jsonString;
 				request.key = pubKey;
 				request.signature = sig;
 				request.timeout = 1;
 
-				web3AuthApi->Logout(request, [&loggedOut](FString response)
+				web3AuthApi->Logout(request, [this](FString response)
 					{
 						UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response);
-						UWeb3Auth::logoutEvent.ExecuteIfBound();
-						loggedOut = true;
+						this->logoutEvent.ExecuteIfBound();
+						this->sessionId = FString();
 					});
 		});
-		if (loggedOut == true) {
-			this->sessionId = FString();
-		}
 	}
 }
 
@@ -455,5 +443,7 @@ void UWeb3Auth::Deinitialize() {
 		route.Key->UnbindRoute(route.Value);
 	}
 	httpRoutes.Empty();
+	this->crypto = nullptr;
+	this->web3AuthApi = nullptr;
 }
 
