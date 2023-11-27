@@ -67,7 +67,7 @@ FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPub
 	// Create a new encryption context for AES-256 CBC mode with the key and IV
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
 	EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
-
+	EVP_CIPHER_CTX_set_padding(ctx, 0);
 	// Allocate a string buffer for the decrypted data
 	std::string dst;
 	dst.resize(srclen + EVP_CIPHER_block_size(EVP_aes_256_cbc()));
@@ -162,21 +162,27 @@ FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPub
 	EC_KEY_free(pub_key);
 	EVP_cleanup();
 
-	return FString(UTF8_TO_TCHAR(dst.c_str()));
+	const char* buf = dst.c_str();
+
+	FString hex;    
+	for (int i = 0; i < strlen(buf); ++i) {        
+		hex += FString::Printf(TEXT("%02x"), buf[i]);    
+	}
+	return hex;
 }
 
 FString UECCrypto::generatePublicKey(const FString& privateKeyHex) {
-	BIGNUM* bn_private_key = NULL;
-	BN_hex2bn(&bn_private_key, TCHAR_TO_ANSI(*privateKeyHex));
+	BIGNUM* bn_private_key = nullptr;
+	BN_hex2bn(&bn_private_key, FStringToCharArray(*privateKeyHex));
 
 	EC_KEY* ec_key = EC_KEY_new_by_curve_name(NID_secp256k1);
 	EC_KEY_set_private_key(ec_key, bn_private_key);
 
 	EC_POINT* ec_point = EC_POINT_new(EC_KEY_get0_group(ec_key));
-	EC_POINT_mul(EC_KEY_get0_group(ec_key), ec_point, EC_KEY_get0_private_key(ec_key), NULL, NULL, NULL);
+	EC_POINT_mul(EC_KEY_get0_group(ec_key), ec_point, EC_KEY_get0_private_key(ec_key), nullptr, nullptr, nullptr);
 	EC_KEY_set_public_key(ec_key, ec_point);
 
-	BIGNUM* bn = EC_POINT_point2bn(EC_KEY_get0_group(ec_key), EC_KEY_get0_public_key(ec_key), POINT_CONVERSION_UNCOMPRESSED, NULL, NULL);
+	BIGNUM* bn = EC_POINT_point2bn(EC_KEY_get0_group(ec_key), EC_KEY_get0_public_key(ec_key), POINT_CONVERSION_UNCOMPRESSED, nullptr, nullptr);
 
 	char* hex = BN_bn2hex(bn);
 	FString result(UTF8_TO_TCHAR(hex));
@@ -191,7 +197,7 @@ FString UECCrypto::generateECDSASignature(const FString& privateKeyHex, const FS
 	// Initialize OpenSSL's elliptic curve library
 	EC_KEY* key = EC_KEY_new_by_curve_name(NID_secp256k1);
 
-	BIGNUM* priv_bn = BN_new();
+	BIGNUM* priv_bn = nullptr;
 	BN_hex2bn(&priv_bn, FStringToCharArray(privateKeyHex));
 
 	EC_KEY_set_private_key(key, priv_bn);
@@ -205,8 +211,26 @@ FString UECCrypto::generateECDSASignature(const FString& privateKeyHex, const FS
 	unsigned char* sig_buf = nullptr;
 
 	ECDSA_SIG* signature = ECDSA_do_sign(hash, SHA256_DIGEST_LENGTH, key);
-	int n = i2d_ECDSA_SIG(signature, &sig_buf);
 
+    BN_CTX *ctx = BN_CTX_new();
+    BN_CTX_start(ctx);
+    const EC_GROUP *group = EC_KEY_get0_group(key);
+    BIGNUM *order = BN_CTX_get(ctx);
+    BIGNUM *halforder = BN_CTX_get(ctx);
+    EC_GROUP_get_order(group, order, ctx);
+    BN_rshift1(halforder, order);
+	const BIGNUM* pr = nullptr;
+	const BIGNUM* ps = nullptr;
+	ECDSA_SIG_get0(signature, &pr, &ps);
+    if (BN_cmp(ps, halforder) > 0) {
+        // enforce low S values. libsecp256k1 does this by default, openssl does not.
+        BN_sub(const_cast<BIGNUM*>(ps), order, ps);
+    }
+    BN_CTX_end(ctx);
+    BN_CTX_free(ctx);
+
+	int n = i2d_ECDSA_SIG(signature, &sig_buf);
+	
 	//// Convert signature to hex string    
 	FString signature_hex;    
 	for (int i = 0; i < n; ++i) {        
@@ -215,6 +239,7 @@ FString UECCrypto::generateECDSASignature(const FString& privateKeyHex, const FS
 
 	EC_KEY_free(key);
 	ECDSA_SIG_free(signature);
+	BN_free(priv_bn);
 
 	return signature_hex;
 }

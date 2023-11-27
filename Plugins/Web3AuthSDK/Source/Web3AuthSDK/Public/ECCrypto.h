@@ -14,9 +14,7 @@
 #define UI UI_ST
 THIRD_PARTY_INCLUDES_START
 #include <openssl/ec.h>
-#include <openssl/ec.h>
 #include <openssl/ecdh.h>
-#include <openssl/ecdsa.h>
 #include <openssl/evp.h>
 #include <openssl/crypto.h>
 #include <openssl/sha.h>
