@@ -623,7 +623,7 @@ public:
 		void setLogoutEvent(FOnLogout _event);
 
 	UFUNCTION(BlueprintCallable)
-		static FString Web3AuthResponseToJsonString(FWeb3AuthResponse response) {
+		FString Web3AuthResponseToJsonString(FWeb3AuthResponse response) {
 		FString output;
 		FJsonObjectConverter::UStructToJsonObjectString(FWeb3AuthResponse::StaticStruct(), &response, output, 0, 0);
 
