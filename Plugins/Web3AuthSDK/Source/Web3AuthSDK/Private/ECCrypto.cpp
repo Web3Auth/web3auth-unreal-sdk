@@ -67,7 +67,7 @@ FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPub
 	// Create a new encryption context for AES-256 CBC mode with the key and IV
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
 	EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
-
+	EVP_CIPHER_CTX_set_padding(ctx, 0);
 	// Allocate a string buffer for the decrypted data
 	std::string dst;
 	dst.resize(srclen + EVP_CIPHER_block_size(EVP_aes_256_cbc()));
@@ -162,12 +162,18 @@ FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPub
 	EC_KEY_free(pub_key);
 	EVP_cleanup();
 
-	return FString(UTF8_TO_TCHAR(dst.c_str()));
+	const char* buf = dst.c_str();
+
+	FString hex;    
+	for (int i = 0; i < strlen(buf); ++i) {        
+		hex += FString::Printf(TEXT("%02x"), buf[i]);    
+	}
+	return hex;
 }
 
 FString UECCrypto::generatePublicKey(const FString& privateKeyHex) {
 	BIGNUM* bn_private_key = nullptr;
-	BN_hex2bn(&bn_private_key, TCHAR_TO_ANSI(*privateKeyHex));
+	BN_hex2bn(&bn_private_key, FStringToCharArray(*privateKeyHex));
 
 	EC_KEY* ec_key = EC_KEY_new_by_curve_name(NID_secp256k1);
 	EC_KEY_set_private_key(ec_key, bn_private_key);

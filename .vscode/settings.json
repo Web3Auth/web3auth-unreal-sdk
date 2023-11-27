@@ -18,6 +18,7 @@
         "string": "cpp",
         "string_view": "cpp",
         "variant": "cpp",
-        "__config": "cpp"
+        "__config": "cpp",
+        "array": "cpp"
     }
 }

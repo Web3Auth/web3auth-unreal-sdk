@@ -404,8 +404,6 @@ void UWeb3Auth::sessionTimeout() {
 		bool loggedOut = false;
 		web3AuthApi->AuthorizeSession(pubKey, [&loggedOut, pubKey, session, this](FStoreApiResponse response)
 			{
-				UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response.message);
-		
 				FShareMetaData shareMetaData;
 
 				if (!FJsonObjectConverter::JsonObjectStringToUStruct(response.message, &shareMetaData, 0, 0)) {
@@ -423,11 +421,12 @@ void UWeb3Auth::sessionTimeout() {
 				FString jsonString;
 				TSharedRef<TJsonWriter<TCHAR>> jsonWriter = TJsonWriterFactory<>::Create(&jsonString);
 				FJsonSerializer::Serialize(jsonObject.ToSharedRef(), jsonWriter);
-
+				FString sig = crypto->generateECDSASignature(session, jsonString);
+				
 				FLogoutApiRequest request;
 				request.data = jsonString;
 				request.key = pubKey;
-				request.signature = crypto->generateECDSASignature(session, jsonString);
+				request.signature = sig;
 				request.timeout = 1;
 
 				web3AuthApi->Logout(request, [&loggedOut](FString response)
