@@ -7,7 +7,6 @@
 #include "JsonUtilities.h"
 
 #include "Misc/Base64.h"
-#include "KeyStoreUtils.h"
 #include "ECCrypto.h"
 #include "Web3AuthApi.h"
 
@@ -570,37 +569,28 @@ DECLARE_DYNAMIC_DELEGATE_OneParam(FOnLogin, FWeb3AuthResponse, response);
 DECLARE_DYNAMIC_DELEGATE(FOnLogout);
 
 UCLASS()
-class WEB3AUTHSDK_API AWeb3Auth : public AActor
+class WEB3AUTHSDK_API UWeb3Auth : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 
-	FWeb3AuthOptions web3AuthOptions;
-	static FWeb3AuthResponse web3AuthResponse;
-
 	TSharedPtr<IHttpRouter> httpRouter;
 	TArray<TPair<TSharedPtr<IHttpRouter>, FHttpRouteHandle>> httpRoutes;
-
-	static FOnLogin loginEvent;
-	static FOnLogout logoutEvent;
-
-
-	static UKeyStoreUtils* keyStoreUtils;
-	static UECCrypto* crypto;
-
+	FWeb3AuthResponse web3AuthResponse;
+	UPROPERTY(Transient)
+	UECCrypto* crypto;
+	UPROPERTY(Transient)
 	UWeb3AuthApi* web3AuthApi = UWeb3AuthApi::GetInstance();
+	FWeb3AuthOptions web3AuthOptions;
+	FOnLogin loginEvent;
+	FOnLogout logoutEvent;
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
+    virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+    virtual void Deinitialize() override;
 public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
 
-public:
-	AWeb3Auth();
+	UPROPERTY()
+	FString sessionId = FString();
 
 	UFUNCTION(BlueprintCallable)
 		void setOptions(FWeb3AuthOptions web3authOptions);
@@ -608,23 +598,20 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void processLogin(FLoginParams loginParams);
 
-	/*UFUNCTION(BlueprintCallable)
-		void logout(FJsonObject params);*/
+	UFUNCTION(BlueprintCallable)
+		void processLogout();
 
 	UFUNCTION(BlueprintCallable)
-		void proccessLogout(FString redirectUrl = "", FString appState = "");
-
-	UFUNCTION(BlueprintCallable)
-		static void setResultUrl(FString code);
+		void setResultUrl(FString code);
 
 	UFUNCTION(BlueprintCallable, Category = "Web3Auth")
-		static void setLoginEvent(FOnLogin _event);
+		void setLoginEvent(FOnLogin _event);
 
 	UFUNCTION(BlueprintCallable, Category = "Web3Auth")
-		static void setLogoutEvent(FOnLogout _event);
+		void setLogoutEvent(FOnLogout _event);
 
 	UFUNCTION(BlueprintCallable)
-		static FString Web3AuthResponseToJsonString(FWeb3AuthResponse response) {
+		FString Web3AuthResponseToJsonString(FWeb3AuthResponse response) {
 		FString output;
 		FJsonObjectConverter::UStructToJsonObjectString(FWeb3AuthResponse::StaticStruct(), &response, output, 0, 0);
 
@@ -643,8 +630,6 @@ public:
     #if PLATFORM_IOS
     static void callBackFromWebAuthenticateIOS(NSString* sResult);
     #endif
-    
-	~AWeb3Auth();
 private:
 	void request(FString  path, FLoginParams* loginParams, TSharedPtr<FJsonObject> extraParam);
 

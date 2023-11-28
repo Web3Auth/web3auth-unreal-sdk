@@ -32,7 +32,7 @@ ASWebAuthenticationSession *_authSession;
     ASWebAuthenticationSession* authSession = [[ASWebAuthenticationSession alloc] initWithURL:URL callbackURLScheme:bundleIdentifier completionHandler:^(NSURL * _Nullable callbackURL, NSError * _Nullable error) {
         
         if(callbackURL) {
-            AWeb3Auth::callBackFromWebAuthenticateIOS(callbackURL.fragment);
+            UWeb3Auth::callBackFromWebAuthenticateIOS(callbackURL.fragment);
         } else {
             return;
         }

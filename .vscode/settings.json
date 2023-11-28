@@ -12,6 +12,13 @@
         "ratio": "cpp",
         "system_error": "cpp",
         "tuple": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "__locale": "cpp",
+        "__threading_support": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "variant": "cpp",
+        "__config": "cpp",
+        "array": "cpp"
     }
 }
