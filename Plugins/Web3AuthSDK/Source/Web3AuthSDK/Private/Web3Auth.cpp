@@ -128,6 +128,11 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 
 	paramMap->SetObjectField("params", params.ToSharedRef());
 
+	FString json = "";
+
+	if (!FJsonObjectConverter::JsonObjectStringToUStruct(json, &paramMap, 0, 0)) {
+		UE_LOG(LogTemp, Warning, TEXT("failed to parse json"));
+	}
 	//FString json;
 
 	//TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&json);
@@ -145,7 +150,7 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
         web3AuthOptions.sdkUrl = "https://auth.web3auth.io/v5";
     }
 
-    FString loginId = createSession(paramMap, 600);
+    FString loginId = createSession(json, 600);
     if (!loginId.IsEmpty())
     {
         TSharedPtr<FJsonObject> loginIdObject = MakeShareable(new FJsonObject);
@@ -392,7 +397,7 @@ void UWeb3Auth::authorizeSession() {
 					return;
 				}
 
-				FString output = crypto->decrypt(shareMetaData.ciphertext, session, shareMetaData.ephemPublicKey, shareMetaData.iv);
+				FString output = crypto->decrypt(shareMetaData.ciphertext, session, shareMetaData.ephemPublicKey, shareMetaData.iv, shareMetaData.mac);
 				UE_LOG(LogTemp, Log, TEXT("output %s"), *output);
 		
 				TSharedPtr<FJsonObject> tempJson;
@@ -478,9 +483,8 @@ FString UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
     FString encryptedData = crypto->encrypt(jsonData, newSessionKey, ephemPublicKey, ivKey, mac_key);
     UE_LOG(LogTemp, Warning, TEXT("encryptedData => %s"), *encryptedData);
 
-    //TArray<uint8> macData = crypto->getMac(encryptedData, ephemPublicKey, ivKey, "");
     FString macHex;
-    for (int i = 0; i < strlen(buf); ++i) {
+    for (int i = 0; i < sizeof(mac_key); ++i) {
    		macHex += FString::Printf(TEXT("%02x"), mac_key[i]);
    	}
     UE_LOG(LogTemp, Warning, TEXT("macHex => %s"), *macHex);
@@ -505,7 +509,7 @@ FString UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
     request.signature = sig;
     request.timeout = FMath::Min(sessionTime, 7 * 86400);
 
-    web3AuthApi->CreateSession(request, [this](FString response)
+    web3AuthApi->CreateSession(request, [this, newSessionKey](FString response)
     	{
     	    UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response);
     	    return FString(newSessionKey);

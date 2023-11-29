@@ -340,13 +340,11 @@ TArray<uint8> UECCrypto::getMac(FString cipherTextHex, FString ephemPublicKeyHex
 {
     TArray<uint8> combinedData = getCombinedData(cipherTextHex, ephemPublicKeyHex, encryptionIvHex);
 
-	TArray<uint8> macKey;
 	const unsigned char* mac = toByteArray(FStringToCharArray(macKeyHex));
-	macKey.Append(mac, sizeof(mac));
-    return hmacSha256Sign(macKey, combinedData);
+    return hmacSha256Sign(mac, combinedData);
 }
 
-TArray<uint8> UECCrypto::hmacSha256Sign(const TArray<uint8>& key, const TArray<uint8>& data)
+TArray<uint8> UECCrypto::hmacSha256Sign(const unsigned char* key, const TArray<uint8>& data)
 {
     TArray<uint8> result;
     unsigned int resultLen = SHA256_DIGEST_LENGTH; // 256-bit hash
@@ -358,7 +356,7 @@ TArray<uint8> UECCrypto::hmacSha256Sign(const TArray<uint8>& key, const TArray<u
         return result;
     }
 
-    HMAC_Init_ex(HmacCtx, key.GetData(), key.Num(), EVP_sha256(), nullptr);
+    HMAC_Init_ex(HmacCtx, key, sizeof(key), EVP_sha256(), nullptr);
     HMAC_Update(HmacCtx, data.GetData(), data.Num());
     HMAC_Final(HmacCtx, result.GetData(), &resultLen);
 
@@ -369,10 +367,10 @@ TArray<uint8> UECCrypto::hmacSha256Sign(const TArray<uint8>& key, const TArray<u
 }
 
 // hmacSha256Verify verifies that the calculated MAC matches the expected MAC
-bool UECCrypto::hmacSha256Verify(const TArray<uint8>& key, const TArray<uint8>& data, const FString& expectedMac)
+bool UECCrypto::hmacSha256Verify(const unsigned char* key, const TArray<uint8>& data, const FString& expectedMac)
 {
     const TArray<uint8>& expectedMacBytes = fStringToByteArray(expectedMac);
-    if (key.Num() == 0 || data.Num() == 0 || expectedMacBytes.Num() == 0)
+    if (sizeof(key) == 0 || data.Num() == 0 || expectedMacBytes.Num() == 0)
     {
         return false;
     }
