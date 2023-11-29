@@ -164,9 +164,9 @@ FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPub
 
 	const char* buf = dst.c_str();
 
-	FString hex;    
-	for (int i = 0; i < strlen(buf); ++i) {        
-		hex += FString::Printf(TEXT("%02x"), buf[i]);    
+	FString hex;
+	for (int i = 0; i < strlen(buf); ++i) {
+		hex += FString::Printf(TEXT("%02x"), buf[i]);
 	}
 	return hex;
 }
@@ -230,11 +230,11 @@ FString UECCrypto::generateECDSASignature(const FString& privateKeyHex, const FS
     BN_CTX_free(ctx);
 
 	int n = i2d_ECDSA_SIG(signature, &sig_buf);
-	
-	//// Convert signature to hex string    
-	FString signature_hex;    
-	for (int i = 0; i < n; ++i) {        
-		signature_hex += FString::Printf(TEXT("%02x"), sig_buf[i]);    
+
+	//// Convert signature to hex string
+	FString signature_hex;
+	for (int i = 0; i < n; ++i) {
+		signature_hex += FString::Printf(TEXT("%02x"), sig_buf[i]);
 	}
 
 	EC_KEY_free(key);
@@ -244,38 +244,114 @@ FString UECCrypto::generateECDSASignature(const FString& privateKeyHex, const FS
 	return signature_hex;
 }
 
-FString generateECPrivateKey()
-{
-    EC_KEY *ecKey = EC_KEY_new_by_curve_name(NID_secp128r1);
+/ Generate session key (private key) for ECDH locally
+FString generateRandomSessionKey() {
+    EC_KEY* ecKeyPair = generateECKeyPair();
+
+    if (!ecKeyPair) {
+        return FString(); // handle error
+    }
+
+    const BIGNUM* privateKeyBN = EC_KEY_get0_private_key(ecKeyPair);
+
+    FString privateKeyStr = convertBigNumToHex(privateKeyBN);
+
+    EC_KEY_free(ecKeyPair);
+
+    return privateKeyStr;
+}
+
+// Generate a new EC key pair
+EC_KEY* generateECKeyPair() {
+    EC_KEY* ecKey = EC_KEY_new_by_curve_name(NID_secp256k1);
+
     if (!ecKey) {
-        std::cerr << "Error creating EC_KEY structure." << std::endl;
-        return "";
+        UE_LOG(LogTemp, Error, TEXT("Error creating EC_KEY structure."));
+        return nullptr;
     }
 
-    if (!EC_KEY_generate_key(ecKey)) {
-        std::cerr << "Error generating EC key." << std::endl;
+    if (EC_KEY_generate_key(ecKey) != 1) {
+        UE_LOG(LogTemp, Error, TEXT("Error generating EC key pair."));
         EC_KEY_free(ecKey);
-        return "";
+        return nullptr;
     }
 
-    const BIGNUM *privateKey = EC_KEY_get0_private_key(ecKey);
-    FString privateKeyHex = BN_bn2hex(privateKey);
-
-    EC_KEY_free(ecKey);
-
-    return privateKeyHex;
+    return ecKey;
 }
 
-/*
-std::vector<Byte> generateRandomBytes()
+// Convert a BIGNUM to a hexadecimal FString
+FString convertBigNumToHex(const BIGNUM* bn) {
+    char* hex = BN_bn2hex(bn);
+    FString result(hex);
+    OPENSSL_free(hex);
+    return result;
+}
+
+// generateRandomBytes generates a random 256-bit hexadecimal FString
+FString generateRandomBytes() {
+    // Generate random bytes
+    const int32 numBytes = 32;
+    unsigned char* Buffer[numBytes];
+    //andBytes(Buffer, numBytes);
+    RAND_bytes(Buffer, numBytes);
+
+    // Convert to hexadecimal FString
+    FString HexString;
+    for (int32 Index = 0; Index < numBytes; ++Index) {
+        HexString += FString::Printf(TEXT("%02x"), Buffer[Index]);
+    }
+
+    return HexString;
+}
+
+// getCombinedData combines the IV, ephemeral public key, and cipher text into a single byte array
+TArray<uint8> getCombinedData(const TArray<uint8>& cipherTextBytes, FString ephemPublicKeyHex, FString encryptionIvHex)
 {
-    AutoSeededRandomPool rng; // crypto++ library needs to be included to be able to use this type
-							  // however would it not be sufficient to generate a private key and take half of the output instead here?
-    std::vector<Byte> bytes(16);
-    rng.GenerateBlock(bytes.data(), bytes.size());
-    return bytes;
+    TArray<uint8> combinedData;
+
+    // Decode IV key
+    const unsigned char* iv = toByteArray(FStringToCharArray(encryptionIvHex));
+
+    // Decode ephem key
+    const unsigned char* ephem = toByteArray(FStringToCharArray(ephemPublicKeyHex));
+
+    combinedData.Append(iv, sizeof(iv));
+    combinedData.Append(ephem, sizeof(ephem));
+    combinedData.Append(cipherTextBytes);
+
+    return combinedData;
 }
-*/
+
+TArray<uint8> getMac(const TArray<uint8>& cipherTextBytes, FString ephemPublicKeyHex, FString encryptionIvHex)
+{
+    TArray<uint8> combinedData = getCombinedData(cipherTextBytes, ephemPublicKeyHex, encryptionIvHex);
+    return HmacSha256Sign(MAC_KEY, combinedData);
+}
+
+TArray<uint8> hmacSha256Sign(const TArray<uint8>& key, const TArray<uint8>& data)
+{
+    TArray<uint8> result;
+    unsigned int resultLen = SHA256_DIGEST_LENGTH; // 256-bit hash
+
+    HMAC_CTX* HmacCtx = HMAC_CTX_new();
+    if (!HmacCtx)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Error creating HMAC context."));
+        return result;
+    }
+
+    HMAC_Init_ex(HmacCtx, key.GetData(), key.Num(), EVP_sha256(), nullptr);
+    HMAC_Update(HmacCtx, data.GetData(), data.Num());
+    HMAC_Final(HmacCtx, result.GetData(), &resultLen);
+
+    HMAC_CTX_free(HmacCtx);
+
+    result.SetNumUninitialized(resultLen);
+    return result;
+}
+
+
+
 
 UECCrypto::~UECCrypto()
 {

@@ -451,6 +451,26 @@ void UWeb3Auth::sessionTimeout() {
 	}
 }
 
+void UWeb3Auth::createSession() {
+    FString newSessionKey = crypto->generateRandomSessionKey();
+    UE_LOG(LogTemp, Warning, TEXT("newSessionKey => %s"), *newSessionKey);
+
+    FString ephemPublicKey = crypto->generatePublicKey(newSessionKey);
+    UE_LOG(LogTemp, Warning, TEXT("ephemPublicKey => %s"), *ephemPublicKey);
+
+    FString ivKey = UKeyStoreManagerUtils::GenerateRandomBytes();
+    UE_LOG(LogTemp, Warning, TEXT("ivKey => %s"), *ivKey);
+
+    FString encryptedData = crypto->encrypt("", newSessionKey, ephemPublicKey, ivKey);
+    UE_LOG(LogTemp, Warning, TEXT("encryptedData => %s"), *encryptedData);
+
+    FShareMetaData shareMetaData;
+    shareMetaData.ciphertext = encryptedData;
+    shareMetaData.ephemPublicKey = ephemPublicKey;
+    shareMetaData.iv = ivKey;
+    shareMetaData.mac = "";
+}
+
 void UWeb3Auth::Initialize(FSubsystemCollectionBase& Collection) {
 	Super::Initialize(Collection);
 	this->crypto = NewObject<UECCrypto>();

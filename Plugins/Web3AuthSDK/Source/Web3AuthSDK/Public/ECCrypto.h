@@ -22,6 +22,7 @@ THIRD_PARTY_INCLUDES_START
 #include <OpenSSL/aes.h>
 #include <OpenSSL/err.h>
 #include <OpenSSL/asn1.h>
+#include <openssl/rand.h>
 THIRD_PARTY_INCLUDES_END
 #undef UI
 
@@ -45,5 +46,13 @@ public:
 
 	FString generatePublicKey(const FString& privateKeyHex);
 	FString generateECDSASignature(const FString& privateKeyHex, const FString& data);
-	FString generateECPrivateKey();
+
+	FString generateRandomSessionKey();
+	EC_KEY* generateECKeyPair();
+	FString convertBigNumToHex(const BIGNUM* bn);
+	FString generateRandomBytes();
+
+	TArray<uint8> GetCombinedData(const TArray<uint8>& CipherTextBytes, FString EphemPublicKeyHex, FString EncryptionIvHex);
+    TArray<uint8> GetMac(const TArray<uint8>& CipherTextBytes, FString EphemPublicKeyHex, FString EncryptionIvHex);
+    TArray<uint8> HmacSha256Sign(const TArray<uint8>& Key, const TArray<uint8>& Data);
 };

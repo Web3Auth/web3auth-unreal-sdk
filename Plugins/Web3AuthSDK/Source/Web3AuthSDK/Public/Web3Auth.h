@@ -659,4 +659,5 @@ private:
 
 	void authorizeSession();
 	void sessionTimeout();
+	void createSession();
 };
