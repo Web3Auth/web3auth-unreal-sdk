@@ -103,6 +103,18 @@ enum class FMFALevel : uint8
 };
 
 UENUM(BlueprintType)
+enum class FLanguage : uint8
+{
+	en, de, ja, ko, zh, es, fr, pt, nl
+};
+
+UENUM(BlueprintType)
+enum class FThemeModes : uint8
+{
+	light, dark
+};
+
+UENUM(BlueprintType)
 enum class FNetwork : uint8
 {
 	MAINNET = 0, TESTNET = 1, CYAN = 2, AQUA = 3, SAPPHIRE_DEVNET = 4, SAPPHIRE_MAINNET = 5
@@ -450,7 +462,7 @@ struct FWhiteLabelData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString name;
+		FString appName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString logoLight;
@@ -459,25 +471,83 @@ struct FWhiteLabelData
 		FString logoDark;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString defaultLanguage;
+    	FLanguage defaultLanguage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		bool dark;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FThemeModes mode;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		TMap<FString, FString> theme;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FString appUrl;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	bool useLogoLoader;
+
 	FWhiteLabelData() {};
 
 	void operator= (const FWhiteLabelData& other) {
-		name = other.name;
+		appName = other.appName;
 		logoLight = other.logoLight;
 		logoDark = other.logoDark;
 		defaultLanguage = other.defaultLanguage;
-		dark = other.dark;
+		mode = other.mode;
 		theme = other.theme;
+		appUrl = other.appUrl;
+		useLogoLoader = other.useLogoLoader;
 	}
 
+};
+
+USTRUCT(BlueprintType)
+struct FMfaSetting
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	bool enable;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        int32 priority;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        bool mandatory;
+
+	FMfaSetting() {};
+
+	void operator= (const FMfaSetting& other) {
+		enable = other.enable;
+		priority = other.priority;
+		mandatory = other.mandatory;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FMfaSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FMfaSetting deviceShareFactor;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FMfaSetting backUpShareFactor;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FMfaSetting socialBackupFactor;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FMfaSetting passwordFactor;
+
+	FMfaSettings() {};
+
+	void operator= (const FMfaSettings& other) {
+		deviceShareFactor = other.deviceShareFactor;
+		backUpShareFactor = other.backUpShareFactor;
+		socialBackupFactor = other.socialBackupFactor;
+		passwordFactor = other.passwordFactor;
+	}
 };
 
 USTRUCT(BlueprintType)
@@ -512,6 +582,12 @@ struct FWeb3AuthOptions
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
         bool useCoreKitKey;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FMfaSettings mfaSettings;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        int32 sessionTime = 86400;
+
 	FWeb3AuthOptions() {};
 
 	void operator= (const FWeb3AuthOptions& other) {
@@ -524,6 +600,8 @@ struct FWeb3AuthOptions
 		loginConfig = other.loginConfig;
 		chainNamespace = other.chainNamespace;
         useCoreKitKey = other.useCoreKitKey;
+        mfaSettings = other.mfaSettings;
+        sessionTime = other.sessionTime;
 	}
 
 };
@@ -659,5 +737,5 @@ private:
 
 	void authorizeSession();
 	void sessionTimeout();
-	void createSession();
+	FString createSession(const FString& jsonData, int32 sessionTime);
 };

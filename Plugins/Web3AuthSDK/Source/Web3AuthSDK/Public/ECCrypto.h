@@ -42,7 +42,7 @@ public:
 	UECCrypto();
 	~UECCrypto();
 
-	FString decrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex); // todo: add FString macKeyHex to params
+	FString decrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex, FString macKeyHex); // todo: add FString macKeyHex to params
 	FString encrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex, unsigned char* mac_key); // consider changing unsinged char* to FString reference.
 
 	FString generatePublicKey(const FString& privateKeyHex);
@@ -56,4 +56,6 @@ public:
 	TArray<uint8> getCombinedData(FString CipherTextHex, FString EphemPublicKeyHex, FString EncryptionIvHex);
     TArray<uint8> getMac(FString CipherTextHex, FString EphemPublicKeyHex, FString EncryptionIvHex, FString macKeyHex);
     TArray<uint8> hmacSha256Sign(const TArray<uint8>& Key, const TArray<uint8>& Data);
+    bool hmacSha256Verify(const TArray<uint8>& key, const TArray<uint8>& data, const FString& expectedMac);
+    TArray<uint8> fStringToByteArray(const FString& inputString);
 };

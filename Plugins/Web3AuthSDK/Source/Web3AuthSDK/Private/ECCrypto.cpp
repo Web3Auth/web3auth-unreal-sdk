@@ -27,7 +27,7 @@ char* FStringToCharArray(const FString& InString) {
 UECCrypto::UECCrypto() {
 }
 
-FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex)
+FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex, FString macKeyHex)
 {
 	// Convert to bytes array
 	const char* priv_hex = FStringToCharArray(privateKeyHex);
@@ -63,6 +63,17 @@ FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPub
 	// Copy first 32 bytes of the hash into a new buffer
 	unsigned char key[32];
 	memcpy(key, hash, 32);
+
+	unsigned char* mac_key = new unsigned char[SHA512_DIGEST_LENGTH - 32];
+	memcpy(mac_key, hash + 32, SHA512_DIGEST_LENGTH - 32);
+
+    //verifying mac
+	if (!hmacSha256Verify(mac_key, getCombinedData(data, ephemPublicKeyHex, encryptionIvHex), macKeyHex))
+    {
+        // throw new BadMacException
+        FString errorMessage = TEXT("Bad MAC error during decrypt");
+        throw std::runtime_error(TCHAR_TO_UTF8(*errorMessage));
+    }
 
 	// Create a new encryption context for AES-256 CBC mode with the key and IV
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
@@ -355,6 +366,45 @@ TArray<uint8> UECCrypto::hmacSha256Sign(const TArray<uint8>& key, const TArray<u
 
     result.SetNumUninitialized(resultLen);
     return result;
+}
+
+// hmacSha256Verify verifies that the calculated MAC matches the expected MAC
+bool UECCrypto::hmacSha256Verify(const TArray<uint8>& key, const TArray<uint8>& data, const FString& expectedMac)
+{
+    const TArray<uint8>& expectedMacBytes = fStringToByteArray(expectedMac);
+    if (key.Num() == 0 || data.Num() == 0 || expectedMacBytes.Num() == 0)
+    {
+        return false;
+    }
+
+    TArray<uint8> calculatedMac = hmacSha256Sign(key, data);
+
+    if (calculatedMac.Num() != expectedMacBytes.Num())
+    {
+        // The lengths of the calculated and expected MACs are different
+        return false;
+    }
+
+    return FMemory::Memcmp(calculatedMac.GetData(), expectedMacBytes.GetData(), calculatedMac.Num()) == 0;
+}
+
+TArray<uint8> UECCrypto::fStringToByteArray(const FString& inputString)
+{
+    const TCHAR* CharArray = *inputString;
+    int32 Size = FCString::Strlen(CharArray);
+
+    // Convert to UTF-8
+    TArray<uint8> resultArray;
+    FTCHARToUTF8 converter(CharArray);
+
+    resultArray.SetNumUninitialized(converter.Length());
+
+    if (resultArray.Num() > 0)
+    {
+        FMemory::Memcpy(resultArray.GetData(), converter.Get(), resultArray.Num());
+    }
+
+    return resultArray;
 }
 
 UECCrypto::~UECCrypto()
