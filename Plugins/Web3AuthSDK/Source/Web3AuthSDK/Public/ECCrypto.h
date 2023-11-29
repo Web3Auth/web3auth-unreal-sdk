@@ -23,6 +23,7 @@ THIRD_PARTY_INCLUDES_START
 #include <OpenSSL/err.h>
 #include <OpenSSL/asn1.h>
 #include <openssl/rand.h>
+#include <openssl/hmac.h>
 THIRD_PARTY_INCLUDES_END
 #undef UI
 
@@ -41,8 +42,8 @@ public:
 	UECCrypto();
 	~UECCrypto();
 
-	FString decrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex);
-	FString encrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex);
+	FString decrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex); // todo: add FString macKeyHex to params
+	FString encrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex, unsigned char* mac_key); // consider changing unsinged char* to FString reference.
 
 	FString generatePublicKey(const FString& privateKeyHex);
 	FString generateECDSASignature(const FString& privateKeyHex, const FString& data);
@@ -52,7 +53,7 @@ public:
 	FString convertBigNumToHex(const BIGNUM* bn);
 	FString generateRandomBytes();
 
-	TArray<uint8> GetCombinedData(const TArray<uint8>& CipherTextBytes, FString EphemPublicKeyHex, FString EncryptionIvHex);
-    TArray<uint8> GetMac(const TArray<uint8>& CipherTextBytes, FString EphemPublicKeyHex, FString EncryptionIvHex);
-    TArray<uint8> HmacSha256Sign(const TArray<uint8>& Key, const TArray<uint8>& Data);
+	TArray<uint8> getCombinedData(FString CipherTextHex, FString EphemPublicKeyHex, FString EncryptionIvHex);
+    TArray<uint8> getMac(FString CipherTextHex, FString EphemPublicKeyHex, FString EncryptionIvHex, FString macKeyHex);
+    TArray<uint8> hmacSha256Sign(const TArray<uint8>& Key, const TArray<uint8>& Data);
 };

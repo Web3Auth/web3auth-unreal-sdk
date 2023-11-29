@@ -423,7 +423,8 @@ void UWeb3Auth::sessionTimeout() {
 					return;
 				}
 
-				FString encryptedData = crypto->encrypt("", this->sessionId, shareMetaData.ephemPublicKey, shareMetaData.iv);
+				unsigned char* mac_key = nullptr;
+				FString encryptedData = crypto->encrypt("", this->sessionId, shareMetaData.ephemPublicKey, shareMetaData.iv, mac_key);
 				shareMetaData.ciphertext = encryptedData;
 
 
@@ -458,10 +459,11 @@ void UWeb3Auth::createSession() {
     FString ephemPublicKey = crypto->generatePublicKey(newSessionKey);
     UE_LOG(LogTemp, Warning, TEXT("ephemPublicKey => %s"), *ephemPublicKey);
 
-    FString ivKey = UKeyStoreManagerUtils::GenerateRandomBytes();
+    FString ivKey = crypto->generateRandomBytes();
     UE_LOG(LogTemp, Warning, TEXT("ivKey => %s"), *ivKey);
 
-    FString encryptedData = crypto->encrypt("", newSessionKey, ephemPublicKey, ivKey);
+	unsigned char* mac_key = nullptr;
+    FString encryptedData = crypto->encrypt("", newSessionKey, ephemPublicKey, ivKey, mac_key);
     UE_LOG(LogTemp, Warning, TEXT("encryptedData => %s"), *encryptedData);
 
     FShareMetaData shareMetaData;

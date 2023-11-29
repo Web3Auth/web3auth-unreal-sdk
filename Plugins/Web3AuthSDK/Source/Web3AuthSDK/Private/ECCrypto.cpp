@@ -96,7 +96,7 @@ FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPub
 	return FString(dst.c_str());
 }
 
-FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex)
+FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex, unsigned char* mac_key)
 {
 	// Convert to bytes array
 	const char* priv_hex = FStringToCharArray(privateKeyHex);
@@ -121,6 +121,7 @@ FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPub
 	EC_KEY_set_private_key(priv_key, priv_bn);
 	EC_KEY_set_public_key(pub_key, EC_POINT_bn2point(EC_KEY_get0_group(pub_key), pub_bn, NULL, NULL));
 
+    mac_key = new unsigned char[SHA512_DIGEST_LENGTH - 32];
 	// Create the shared secret
 	unsigned char* secret = new unsigned char[32];
 	int secret_len = ECDH_compute_key(secret, EVP_MAX_KEY_LENGTH, EC_KEY_get0_public_key(pub_key), priv_key, NULL);
@@ -132,6 +133,8 @@ FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPub
 	// Copy first 32 bytes of the hash into a new buffer
 	unsigned char key[32];
 	memcpy(key, hash, 32);
+
+	memcpy(mac_key, hash + 32, SHA512_DIGEST_LENGTH - 32);
 
 	// Create a new encryption context for AES-256 CBC mode with the key and IV
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
@@ -244,8 +247,8 @@ FString UECCrypto::generateECDSASignature(const FString& privateKeyHex, const FS
 	return signature_hex;
 }
 
-/ Generate session key (private key) for ECDH locally
-FString generateRandomSessionKey() {
+// Generate session key (private key) for ECDH locally
+FString UECCrypto::generateRandomSessionKey() {
     EC_KEY* ecKeyPair = generateECKeyPair();
 
     if (!ecKeyPair) {
@@ -262,7 +265,7 @@ FString generateRandomSessionKey() {
 }
 
 // Generate a new EC key pair
-EC_KEY* generateECKeyPair() {
+EC_KEY* UECCrypto::generateECKeyPair() {
     EC_KEY* ecKey = EC_KEY_new_by_curve_name(NID_secp256k1);
 
     if (!ecKey) {
@@ -280,34 +283,34 @@ EC_KEY* generateECKeyPair() {
 }
 
 // Convert a BIGNUM to a hexadecimal FString
-FString convertBigNumToHex(const BIGNUM* bn) {
+FString UECCrypto::convertBigNumToHex(const BIGNUM* bn) {
     char* hex = BN_bn2hex(bn);
     FString result(hex);
     OPENSSL_free(hex);
     return result;
 }
 
-// generateRandomBytes generates a random 256-bit hexadecimal FString
-FString generateRandomBytes() {
+FString UECCrypto::generateRandomBytes() {
     // Generate random bytes
     const int32 numBytes = 32;
-    unsigned char* Buffer[numBytes];
-    //andBytes(Buffer, numBytes);
-    RAND_bytes(Buffer, numBytes);
+    unsigned char* buffer = nullptr;
+    RAND_bytes(buffer, numBytes);
 
     // Convert to hexadecimal FString
     FString HexString;
-    for (int32 Index = 0; Index < numBytes; ++Index) {
-        HexString += FString::Printf(TEXT("%02x"), Buffer[Index]);
+    for (int32 i = 0; i < numBytes; ++i) {
+        HexString += FString::Printf(TEXT("%02x"), buffer[i]);
     }
 
     return HexString;
 }
 
 // getCombinedData combines the IV, ephemeral public key, and cipher text into a single byte array
-TArray<uint8> getCombinedData(const TArray<uint8>& cipherTextBytes, FString ephemPublicKeyHex, FString encryptionIvHex)
+TArray<uint8> UECCrypto::getCombinedData(FString cipherTextHex, FString ephemPublicKeyHex, FString encryptionIvHex)
 {
     TArray<uint8> combinedData;
+
+	const unsigned char* cipherBytes = toByteArray(FStringToCharArray(cipherTextHex));
 
     // Decode IV key
     const unsigned char* iv = toByteArray(FStringToCharArray(encryptionIvHex));
@@ -317,18 +320,22 @@ TArray<uint8> getCombinedData(const TArray<uint8>& cipherTextBytes, FString ephe
 
     combinedData.Append(iv, sizeof(iv));
     combinedData.Append(ephem, sizeof(ephem));
-    combinedData.Append(cipherTextBytes);
+    combinedData.Append(cipherBytes, sizeof(cipherBytes));
 
     return combinedData;
 }
 
-TArray<uint8> getMac(const TArray<uint8>& cipherTextBytes, FString ephemPublicKeyHex, FString encryptionIvHex)
+TArray<uint8> UECCrypto::getMac(FString cipherTextHex, FString ephemPublicKeyHex, FString encryptionIvHex, FString macKeyHex)
 {
-    TArray<uint8> combinedData = getCombinedData(cipherTextBytes, ephemPublicKeyHex, encryptionIvHex);
-    return HmacSha256Sign(MAC_KEY, combinedData);
+    TArray<uint8> combinedData = getCombinedData(cipherTextHex, ephemPublicKeyHex, encryptionIvHex);
+
+	TArray<uint8> macKey;
+	const unsigned char* mac = toByteArray(FStringToCharArray(macKeyHex));
+	macKey.Append(mac, sizeof(mac));
+    return hmacSha256Sign(macKey, combinedData);
 }
 
-TArray<uint8> hmacSha256Sign(const TArray<uint8>& key, const TArray<uint8>& data)
+TArray<uint8> UECCrypto::hmacSha256Sign(const TArray<uint8>& key, const TArray<uint8>& data)
 {
     TArray<uint8> result;
     unsigned int resultLen = SHA256_DIGEST_LENGTH; // 256-bit hash
@@ -349,9 +356,6 @@ TArray<uint8> hmacSha256Sign(const TArray<uint8>& key, const TArray<uint8>& data
     result.SetNumUninitialized(resultLen);
     return result;
 }
-
-
-
 
 UECCrypto::~UECCrypto()
 {
