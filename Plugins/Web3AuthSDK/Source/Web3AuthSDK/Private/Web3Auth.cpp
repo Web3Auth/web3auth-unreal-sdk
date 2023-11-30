@@ -169,10 +169,10 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
         loginIdObject->SetStringField(TEXT("loginId"), loginId);
 
         // Convert to Base64
-        FString Hash = FBase64::Encode(TCHAR_TO_UTF8(*FString(JsonObjectToString(loginIdObject))));
+        FString hash = FBase64::Encode(TCHAR_TO_UTF8(*FString(JsonObjectToString(loginIdObject))));
 
         // Build the URI
-        FString url = web3AuthOptions.sdkUrl + "/" + path + "#" + "b64Params=" + base64;
+        FString url = web3AuthOptions.sdkUrl + "/" + path + "#" + "b64Params=" + hash;
 
         #if PLATFORM_ANDROID
             if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true)) {
@@ -517,7 +517,7 @@ FString UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
 
     FLogoutApiRequest request;
     request.data = jsonString;
-    request.key = pubKey;
+    request.key = ephemPublicKey;
     request.signature = sig;
     request.timeout = FMath::Min(sessionTime, 7 * 86400);
 
