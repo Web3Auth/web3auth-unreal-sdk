@@ -304,7 +304,7 @@ FString UECCrypto::convertBigNumToHex(const BIGNUM* bn) {
 FString UECCrypto::generateRandomBytes() {
     // Generate random bytes
     const int32 numBytes = 32;
-    unsigned char* buffer = nullptr;
+    unsigned char* buffer = new unsigned char[numBytes];
     RAND_bytes(buffer, numBytes);
 
     // Convert to hexadecimal FString
@@ -313,6 +313,7 @@ FString UECCrypto::generateRandomBytes() {
         HexString += FString::Printf(TEXT("%02x"), buffer[i]);
     }
 
+    delete[] buffer;
     return HexString;
 }
 
