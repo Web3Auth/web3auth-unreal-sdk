@@ -336,12 +336,12 @@ TArray<uint8> UECCrypto::getCombinedData(FString cipherTextHex, FString ephemPub
     return combinedData;
 }
 
-unsigned char* UECCrypto::getMac(FString cipherTextHex, FString ephemPublicKeyHex, FString encryptionIvHex, FString macKeyHex)
+TArray<uint8> UECCrypto::getMac(FString cipherTextHex, FString ephemPublicKeyHex, FString encryptionIvHex, FString macKeyHex)
 {
     TArray<uint8> combinedData = getCombinedData(cipherTextHex, ephemPublicKeyHex, encryptionIvHex);
 
 	const unsigned char* mac = toByteArray(FStringToCharArray(macKeyHex));
-    return hmacSha256Sign(mac, combinedData).GetData();
+    return hmacSha256Sign(mac, combinedData);
 }
 
 TArray<uint8> UECCrypto::hmacSha256Sign(const unsigned char* key, const TArray<uint8>& data)

@@ -500,10 +500,11 @@ FString UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
    	}
     UE_LOG(LogTemp, Warning, TEXT("macKeyHex => %s"), *macKeyHex);
 
-    unsigned char* macKey = crypto->getMac(encryptedData, ephemPublicKey, ivKey, macKeyHex);
+    TArray<uint8> macKey = crypto->getMac(encryptedData, ephemPublicKey, ivKey, macKeyHex);
+	unsigned char* macKeyPtr = macKey.GetData();
     FString finalMac;
-        for (int i = 0; i < sizeof(macKey); ++i) {
-       		finalMac += FString::Printf(TEXT("%02x"), macKey[i]);
+        for (int i = 0; i < sizeof(macKeyPtr); ++i) {
+       		finalMac += FString::Printf(TEXT("%02x"), macKeyPtr[i]);
        	}
 
     FShareMetaData shareMetaData;
