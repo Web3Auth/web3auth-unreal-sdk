@@ -54,7 +54,7 @@ public:
 	FString generateRandomBytes();
 
 	TArray<uint8> getCombinedData(FString CipherTextHex, FString EphemPublicKeyHex, FString EncryptionIvHex);
-    TArray<uint8> getMac(FString CipherTextHex, FString EphemPublicKeyHex, FString EncryptionIvHex, FString macKeyHex);
+    unsigned char* getMac(FString CipherTextHex, FString EphemPublicKeyHex, FString EncryptionIvHex, FString macKeyHex);
     TArray<uint8> hmacSha256Sign(const unsigned char*, const TArray<uint8>& Data);
     bool hmacSha256Verify(const unsigned char* key, const TArray<uint8>& data, const FString& expectedMac);
     TArray<uint8> fStringToByteArray(const FString& inputString);

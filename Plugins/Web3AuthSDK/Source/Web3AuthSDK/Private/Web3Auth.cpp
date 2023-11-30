@@ -69,14 +69,14 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	if (web3AuthOptions.redirectUrl != "")
 		initParams->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
 
-	if (web3AuthOptions.mfaSettings.IsValid())
+	if (!(web3AuthOptions.mfaSettings == FMfaSettings()))
     {
         FString mfaSettingsJson;
-        FJsonSerializer::Serialize(web3AuthOptions.mfaSettings, mfaSettingsJson);
+        FJsonSerializer::Serialize(web3AuthOptions.mfaSettings, &mfaSettingsJson);
         initParams->SetStringField(TEXT("mfaSettings"), mfaSettingsJson);
     }
 
-    if (web3AuthOptions.sessionTime.IsSet())
+    if (web3AuthOptions.sessionTime > 0)
     {
          initParams->SetNumberField(TEXT("sessionTime"), web3AuthOptions.sessionTime);
     }
@@ -140,15 +140,9 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 
 	paramMap->SetObjectField("params", params.ToSharedRef());
 
-	FString json = "";
-
-	if (!FJsonObjectConverter::JsonObjectStringToUStruct(json, &paramMap, 0, 0)) {
-		UE_LOG(LogTemp, Warning, TEXT("failed to parse json"));
-	}
-	//FString json;
-
-	//TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&json);
-	//FJsonSerializer::Serialize(paramMap.ToSharedRef(), Writer);
+	FString json;
+    TSharedRef< TJsonWriter<> > jsonWriter = TJsonWriterFactory<>::Create(&json);
+	FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
 
 	//const FString jsonOutput = json;
 	//FString base64 = FBase64::Encode(jsonOutput);
@@ -169,10 +163,13 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
         loginIdObject->SetStringField(TEXT("loginId"), loginId);
 
         // Convert to Base64
-        FString hash = FBase64::Encode(TCHAR_TO_UTF8(*FString(JsonObjectToString(loginIdObject))));
+        FString output;
+        TSharedRef< TJsonWriter<> > outputWriter = TJsonWriterFactory<>::Create(&output);
+        FJsonSerializer::Serialize(loginIdObject.ToSharedRef(), outputWriter);
+        FString encode = FBase64::Encode(output);
 
         // Build the URI
-        FString url = web3AuthOptions.sdkUrl + "/" + path + "#" + "b64Params=" + hash;
+        FString url = web3AuthOptions.sdkUrl + "/" + path + "#" + "b64Params=" + encode;
 
         #if PLATFORM_ANDROID
             if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true)) {
@@ -495,17 +492,23 @@ FString UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
     FString encryptedData = crypto->encrypt(jsonData, newSessionKey, ephemPublicKey, ivKey, mac_key);
     UE_LOG(LogTemp, Warning, TEXT("encryptedData => %s"), *encryptedData);
 
-    FString macHex;
+    FString macKeyHex;
     for (int i = 0; i < sizeof(mac_key); ++i) {
-   		macHex += FString::Printf(TEXT("%02x"), mac_key[i]);
+   		macKeyHex += FString::Printf(TEXT("%02x"), mac_key[i]);
    	}
-    UE_LOG(LogTemp, Warning, TEXT("macHex => %s"), *macHex);
+    UE_LOG(LogTemp, Warning, TEXT("macKeyHex => %s"), *macKeyHex);
+
+    unsigned char* macKey = crypto->getMac(encryptedData, ephemPublicKey, ivKey, macKeyHex);
+    FString finalMac;
+        for (int i = 0; i < sizeof(macKey); ++i) {
+       		finalMac += FString::Printf(TEXT("%02x"), macKey[i]);
+       	}
 
     FShareMetaData shareMetaData;
     shareMetaData.ciphertext = encryptedData;
     shareMetaData.ephemPublicKey = ephemPublicKey;
     shareMetaData.iv = ivKey;
-    shareMetaData.mac = macHex;
+    shareMetaData.mac = finalMac;
 
     TSharedPtr<FJsonObject> jsonObject = MakeShareable(new FJsonObject);
     FJsonObjectConverter::UStructToJsonObject(FShareMetaData::StaticStruct(), &shareMetaData, jsonObject.ToSharedRef(), 0, 0);
