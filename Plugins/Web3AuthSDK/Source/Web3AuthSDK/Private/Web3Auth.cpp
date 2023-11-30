@@ -74,7 +74,7 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	if (!(web3AuthOptions.mfaSettings == defaultMFA))
     {
         FString mfaSettingsJson;
-        FJsonSerializer::Serialize(web3AuthOptions.mfaSettings, &mfaSettingsJson);
+        FJsonObjectConverter::UStructToJsonObjectString(web3AuthOptions.mfaSettings, mfaSettingsJson);
         initParams->SetStringField(TEXT("mfaSettings"), mfaSettingsJson);
     }
 
