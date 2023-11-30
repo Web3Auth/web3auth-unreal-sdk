@@ -69,6 +69,18 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	if (web3AuthOptions.redirectUrl != "")
 		initParams->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
 
+	if (web3AuthOptions.mfaSettings.IsValid())
+    {
+        FString mfaSettingsJson;
+        FJsonSerializer::Serialize(web3AuthOptions.mfaSettings, mfaSettingsJson);
+        initParams->SetStringField(TEXT("mfaSettings"), mfaSettingsJson);
+    }
+
+    if (web3AuthOptions.sessionTime.IsSet())
+    {
+         initParams->SetNumberField(TEXT("sessionTime"), web3AuthOptions.sessionTime);
+    }
+
 #if !PLATFORM_ANDROID && !PLATFORM_IOS
 	FString redirectUrl = startLocalWebServer();
 	initParams->SetStringField("redirectUrl", redirectUrl);
