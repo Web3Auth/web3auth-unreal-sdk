@@ -524,6 +524,17 @@ struct FMfaSetting
 		priority = other.priority;
 		mandatory = other.mandatory;
 	}
+
+	bool operator==(const FMfaSetting& other) const
+    {
+    if (enable == other.enable &&
+	    priority == other.priority &&
+	    mandatory == other.mandatory) 
+		{
+			return true;
+		}
+	return false;
+    }
 };
 
 USTRUCT(BlueprintType)
@@ -551,6 +562,19 @@ struct FMfaSettings
 		socialBackupFactor = other.socialBackupFactor;
 		passwordFactor = other.passwordFactor;
 	}
+
+	bool operator==(const FMfaSettings& other) const
+    {
+    if (deviceShareFactor == other.deviceShareFactor &&
+	    backUpShareFactor == other.backUpShareFactor  &&
+	    socialBackupFactor == other.socialBackupFactor &&
+	    passwordFactor == other.passwordFactor) 
+		{
+			return true;
+		}
+	return false;
+    }
+
 };
 
 USTRUCT(BlueprintType)

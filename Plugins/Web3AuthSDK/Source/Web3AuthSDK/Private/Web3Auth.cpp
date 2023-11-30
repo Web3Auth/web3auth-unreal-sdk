@@ -69,7 +69,9 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	if (web3AuthOptions.redirectUrl != "")
 		initParams->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
 
-	if (!(web3AuthOptions.mfaSettings == FMfaSettings()))
+	FMfaSettings defaultMFA;
+
+	if (!(web3AuthOptions.mfaSettings == defaultMFA))
     {
         FString mfaSettingsJson;
         FJsonSerializer::Serialize(web3AuthOptions.mfaSettings, &mfaSettingsJson);
