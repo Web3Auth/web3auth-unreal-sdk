@@ -373,7 +373,7 @@ struct FLoginParams
 		FMFALevel mfaLevel;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FCurve curve;
+		FCurve curve = FCurve::SECP256K1;
 
 	FLoginParams() {};
 
@@ -438,6 +438,9 @@ struct FUserInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString oAuthAccessToken;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	bool isMfaEnabled;
+
 	FUserInfo() {};
 
 	bool IsEmpty() const {
@@ -471,7 +474,7 @@ struct FWhiteLabelData
 		FString logoDark;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    	FLanguage defaultLanguage;
+    	FLanguage defaultLanguage = FLanguage::en;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     	FThemeModes mode;
