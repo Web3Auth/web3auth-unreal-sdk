@@ -76,3 +76,4 @@ DerivedDataCache/*
 
 # MAC
 **/*.DS_Store
+package/*
