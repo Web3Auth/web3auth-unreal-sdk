@@ -15,7 +15,7 @@ JNI_METHOD void Java_com_epicgames_unreal_GameActivity_onDeepLink(JNIEnv* env, j
 
 		FString result = FString(UTF8_TO_TCHAR(UTFString));
 		UE_LOG(LogTemp, Warning, TEXT("redirect %s"), *result);
-
+		// TODO: Fix this
 		//UWeb3Auth::setResultUrl(result);
 
 		Env->ReleaseStringUTFChars(uri, UTFString);
@@ -310,7 +310,8 @@ void UWeb3Auth::setLogoutEvent(FOnLogout _event) {
 #if PLATFORM_IOS
 void UWeb3Auth::callBackFromWebAuthenticateIOS(NSString* sResult) {
     FString result = FString(sResult);
-    UWeb3Auth::setResultUrl(result);
+	//TODO: Fix this
+    //UWeb3Auth::setResultUrl(result);
 }
 #endif
 
