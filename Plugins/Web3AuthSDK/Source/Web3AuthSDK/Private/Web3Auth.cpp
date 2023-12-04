@@ -16,7 +16,7 @@ JNI_METHOD void Java_com_epicgames_unreal_GameActivity_onDeepLink(JNIEnv* env, j
 		FString result = FString(UTF8_TO_TCHAR(UTFString));
 		UE_LOG(LogTemp, Warning, TEXT("redirect %s"), *result);
 
-		UWeb3Auth::setResultUrl(result);
+		//UWeb3Auth::setResultUrl(result);
 
 		Env->ReleaseStringUTFChars(uri, UTFString);
 		Env->DeleteLocalRef(uri);

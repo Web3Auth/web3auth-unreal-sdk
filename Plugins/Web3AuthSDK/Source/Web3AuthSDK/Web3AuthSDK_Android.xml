@@ -42,9 +42,9 @@ https://docs.unrealengine.com/en-US/SharingAndReleasing/Mobile/UnrealPluginLangu
     <!-- Adding your own Permission -->
     <addPermission android:name="com.android.permission.READ_EXTERNAL_STORAGE"/>
     <addPermission android:name="com.android.permission.WRITE_EXTERNAL_STORAGE"/>
+	<addPermission android:name="android.permission.INTERNET" />
 
-    
-    <!-- update the GameActivity activity -->
+	  <!-- update the GameActivity activity -->
     <loopElements tag="activity">
         <setStringFromAttribute result="activityName" tag="$" name="android:name"/>
         <setBoolIsEqual result="bGameActivity" arg1="$S(activityName)" arg2="com.epicgames.unreal.GameActivity"/>

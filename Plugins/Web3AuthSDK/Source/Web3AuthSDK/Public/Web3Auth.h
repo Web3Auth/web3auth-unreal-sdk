@@ -590,7 +590,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FWeb3AuthResponse web3AuthResponse;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FString sessionId = FString();
 
 	UFUNCTION(BlueprintCallable)
