@@ -8,7 +8,7 @@
 #include "IOS/ObjC/WebAuthenticate.h"
 #endif
 
-#if PLATFORM_ANDROID && PLATFORM_IOS
+#if PLATFORM_ANDROID || PLATFORM_IOS
 // Need to keep a pointer to self later.
 // How this works is:
 // Android:
