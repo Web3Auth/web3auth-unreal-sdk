@@ -318,36 +318,35 @@ FString UECCrypto::generateRandomBytes() {
 }
 
 // getCombinedData combines the IV, ephemeral public key, and cipher text into a single byte array
-TArray<uint8> UECCrypto::getCombinedData(FString cipherTextHex, FString ephemPublicKeyHex, FString encryptionIvHex)
+unsigned char* UECCrypto::getCombinedData(FString cipherTextHex, FString ephemPublicKeyHex, FString encryptionIvHex)
 {
-    TArray<uint8> combinedData;
-
 	const unsigned char* cipherBytes = toByteArray(FStringToCharArray(cipherTextHex));
 
     // Decode IV key
     const unsigned char* iv = toByteArray(FStringToCharArray(encryptionIvHex));
 
     // Decode ephem key
-    const unsigned char* ephem = toByteArray(FStringToCharArray(ephemPublicKeyHex));
+    const unsigned char* ephem = toByteArray(FStringToCharArray(cipherBytes));
 
-    combinedData.Append(iv, sizeof(iv));
-    combinedData.Append(ephem, sizeof(ephem));
-    combinedData.Append(cipherBytes, sizeof(cipherBytes));
+    int32& combinedDataSize = sizeof(iv) + sizeof(ephem) + sizeof(cipherTextHex);
+    unsigned char* combinedData = new unsigned char[combinedDataSize];
+
+    FMemory::Memcpy(combinedData, iv, sizeof(iv));
+    FMemory::Memcpy(combinedData + sizeof(iv), ephem, sizeof(ephem));
+    FMemory::Memcpy(combinedData + sizeof(iv) + sizeof(ephem), cipherBytes, sizeof(cipherBytes));
 
     return combinedData;
 }
 
-TArray<uint8> UECCrypto::getMac(FString cipherTextHex, FString ephemPublicKeyHex, FString encryptionIvHex, FString macKeyHex)
+unsigned char* UECCrypto::getMac(FString cipherTextHex, FString ephemPublicKeyHex, FString encryptionIvHex, FString macKeyHex)
 {
-    TArray<uint8> combinedData = getCombinedData(cipherTextHex, ephemPublicKeyHex, encryptionIvHex);
-
-	const unsigned char* mac = toByteArray(FStringToCharArray(macKeyHex));
-    return hmacSha256Sign(mac, combinedData);
+    unsigned char* combinedArray = getCombinedData(cipherTextHex, ephemPublicKeyHex, encryptionIvHex);
+    return hmacSha256Sign(toByteArray(FStringToCharArray(macKeyHex)), combinedArray);
 }
 
-TArray<uint8> UECCrypto::hmacSha256Sign(const unsigned char* key, const TArray<uint8>& data)
+unsigned char* UECCrypto::hmacSha256Sign(const unsigned char* key, const unsigned char* data)
 {
-    TArray<uint8> result;
+    unsigned char* result = nullptr;
     unsigned int resultLen = SHA256_DIGEST_LENGTH; // 256-bit hash
 
     HMAC_CTX* HmacCtx = HMAC_CTX_new();
@@ -358,33 +357,43 @@ TArray<uint8> UECCrypto::hmacSha256Sign(const unsigned char* key, const TArray<u
     }
 
     HMAC_Init_ex(HmacCtx, key, sizeof(key), EVP_sha256(), nullptr);
-    HMAC_Update(HmacCtx, data.GetData(), data.Num());
-    HMAC_Final(HmacCtx, result.GetData(), &resultLen);
+    HMAC_Update(HmacCtx, data, sizeof(data));
+
+    result = new unsigned char[resultLen];
+    HMAC_Final(HmacCtx, result, &resultLen);
 
     HMAC_CTX_free(HmacCtx);
 
-    result.SetNumUninitialized(resultLen);
     return result;
 }
 
 // hmacSha256Verify verifies that the calculated MAC matches the expected MAC
-bool UECCrypto::hmacSha256Verify(const unsigned char* key, const TArray<uint8>& data, const FString& expectedMac)
+bool UECCrypto::hmacSha256Verify(const unsigned char* key, const unsigned char* data, const FString& expectedMac)
 {
     const TArray<uint8>& expectedMacBytes = fStringToByteArray(expectedMac);
-    if (sizeof(key) == 0 || data.Num() == 0 || expectedMacBytes.Num() == 0)
+    if (sizeof(key) == 0 || sizeof(data) == 0 || expectedMacBytes.Num() == 0)
     {
         return false;
     }
 
-    TArray<uint8> calculatedMac = hmacSha256Sign(key, data);
+    unsigned char* calculatedMac = hmacSha256Sign(key, data);
 
-    if (calculatedMac.Num() != expectedMacBytes.Num())
+    if (!calculatedMac)
+    {
+        return false;
+    }
+
+    TArray<uint8> calculatedMacArray(calculatedMac, SHA256_DIGEST_LENGTH);
+    delete[] calculatedMac;
+
+    if (calculatedMacArray.Num() != expectedMacBytes.Num())
     {
         // The lengths of the calculated and expected MACs are different
         return false;
     }
 
-    return FMemory::Memcmp(calculatedMac.GetData(), expectedMacBytes.GetData(), calculatedMac.Num()) == 0;
+    return FMemory::Memcmp(calculatedMacArray.GetData(), expectedMacBytes.GetData(), calculatedMacArray.Num()) == 0;
+
 }
 
 TArray<uint8> UECCrypto::fStringToByteArray(const FString& inputString)
