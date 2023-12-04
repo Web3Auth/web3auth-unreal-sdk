@@ -9,14 +9,21 @@
 #endif
 
 #if PLATFORM_ANDROID
+ 
+// Need to keep a pointer to self later.
+// How this works is:
+// 1) Just before opening BrowserView, assign thiz to the current instance. Code then moves from C++ to Java.
+// 2) When returning from BrowserView, onDeepLink is called. Code returns to C++ from Java
+// 3) In the implementation of onDeepLink, thiz is used to call the c++ method (setResultUrl) on this instance.
+UWeb3Auth* thiz = nullptr;
+
 JNI_METHOD void Java_com_epicgames_unreal_GameActivity_onDeepLink(JNIEnv* env, jclass clazz, jstring uri) {
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true)) {
 		const char* UTFString = Env->GetStringUTFChars(uri, 0);
 
 		FString result = FString(UTF8_TO_TCHAR(UTFString));
 		UE_LOG(LogTemp, Warning, TEXT("redirect %s"), *result);
-
-		UWeb3Auth::setResultUrl(result);
+		thiz->setResultUrl(result);
 
 		Env->ReleaseStringUTFChars(uri, UTFString);
 		Env->DeleteLocalRef(uri);
@@ -129,6 +136,8 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	FString url = web3AuthOptions.sdkUrl + "/" + path + "#" + base64;
 
 #if PLATFORM_ANDROID
+	thiz = this;
+
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true)) {
 		jstring jurl = Env->NewStringUTF(TCHAR_TO_UTF8(*url));
 
@@ -310,7 +319,8 @@ void UWeb3Auth::setLogoutEvent(FOnLogout _event) {
 #if PLATFORM_IOS
 void UWeb3Auth::callBackFromWebAuthenticateIOS(NSString* sResult) {
     FString result = FString(sResult);
-    UWeb3Auth::setResultUrl(result);
+	//TODO: Fix this
+    //UWeb3Auth::setResultUrl(result);
 }
 #endif
 
