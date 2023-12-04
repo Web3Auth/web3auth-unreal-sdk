@@ -8,15 +8,23 @@
 #include "IOS/ObjC/WebAuthenticate.h"
 #endif
 
-#if PLATFORM_ANDROID
- 
+#if PLATFORM_ANDROID && PLATFORM_IOS
 // Need to keep a pointer to self later.
 // How this works is:
+// Android:
 // 1) Just before opening BrowserView, assign thiz to the current instance. Code then moves from C++ to Java.
 // 2) When returning from BrowserView, onDeepLink is called. Code returns to C++ from Java
 // 3) In the implementation of onDeepLink, thiz is used to call the c++ method (setResultUrl) on this instance.
+// IOS:
+//  1) Just before opening WebAuthenticate, assign thiz to the current instance. Code then moves from C++ to ObjC.
+//  2) When returning from WebAuthenticate, onDeepLink is called. Code returns to C++ from ObjC.
+//  3) In the implementation of callBackFromWebAuthenticateIOS, thiz is used to call the c++ method (setResultUrl) on this instance.
+
 UWeb3Auth* thiz = nullptr;
 
+#endif
+
+#if PLATFORM_ANDROID
 JNI_METHOD void Java_com_epicgames_unreal_GameActivity_onDeepLink(JNIEnv* env, jclass clazz, jstring uri) {
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true)) {
 		const char* UTFString = Env->GetStringUTFChars(uri, 0);
@@ -147,6 +155,8 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 		CallJniVoidMethod(Env, jbrowserViewClass, jlaunchUrl, FJavaWrapper::GameActivityThis, jurl);
 	}
 #elif PLATFORM_IOS
+	thiz = this;
+
 	[[WebAuthenticate Singleton] launchUrl:TCHAR_TO_ANSI(*url)];
 #else
 	FPlatformProcess::LaunchURL(*url, NULL, NULL);
@@ -246,7 +256,7 @@ bool UWeb3Auth::requestAuthCallback(const FHttpServerRequest& Request, const FHt
 	FString code = Request.QueryParams["code"];
 
 	if (!code.IsEmpty()) {
-		UWeb3Auth::setResultUrl(code);
+		setResultUrl(code);
 	}
 
 	TUniquePtr<FHttpServerResponse> response = FHttpServerResponse::Create(TEXT("OK"), TEXT("text/html"));
@@ -319,8 +329,7 @@ void UWeb3Auth::setLogoutEvent(FOnLogout _event) {
 #if PLATFORM_IOS
 void UWeb3Auth::callBackFromWebAuthenticateIOS(NSString* sResult) {
     FString result = FString(sResult);
-	//TODO: Fix this
-    //UWeb3Auth::setResultUrl(result);
+	thiz->setResultUrl(result);
 }
 #endif
 
