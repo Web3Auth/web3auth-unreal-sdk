@@ -17,7 +17,7 @@
 // 3) In the implementation of onDeepLink, thiz is used to call the c++ method (setResultUrl) on this instance.
 // IOS:
 //  1) Just before opening WebAuthenticate, assign thiz to the current instance. Code then moves from C++ to ObjC.
-//  2) When returning from WebAuthenticate, onDeepLink is called. Code returns to C++ from ObjC.
+//  2) When returning from WebAuthenticate, callBackFromWebAuthenticateIOS is called. Code returns to C++ from ObjC.
 //  3) In the implementation of callBackFromWebAuthenticateIOS, thiz is used to call the c++ method (setResultUrl) on this instance.
 
 UWeb3Auth* thiz = nullptr;
