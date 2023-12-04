@@ -349,20 +349,20 @@ unsigned char* UECCrypto::hmacSha256Sign(const unsigned char* key, const unsigne
     unsigned char* result = nullptr;
     unsigned int resultLen = SHA256_DIGEST_LENGTH; // 256-bit hash
 
-    HMAC_CTX* HmacCtx = HMAC_CTX_new();
-    if (!HmacCtx)
+    HMAC_CTX* hmacCtx = HMAC_CTX_new();
+    if (!hmacCtx)
     {
         UE_LOG(LogTemp, Error, TEXT("Error creating HMAC context."));
         return result;
     }
 
-    HMAC_Init_ex(HmacCtx, key, sizeof(key), EVP_sha256(), nullptr);
-    HMAC_Update(HmacCtx, data, sizeof(data));
+    HMAC_Init_ex(hmacCtx, key, strlen(reinterpret_cast<const char*>(key)), EVP_sha256(), nullptr);
+    HMAC_Update(hmacCtx, data, strlen(reinterpret_cast<const char*>(data)));
 
     result = new unsigned char[resultLen];
-    HMAC_Final(HmacCtx, result, &resultLen);
+    HMAC_Final(hmacCtx, result, &resultLen);
 
-    HMAC_CTX_free(HmacCtx);
+    HMAC_CTX_free(hmacCtx);
 
     return result;
 }
