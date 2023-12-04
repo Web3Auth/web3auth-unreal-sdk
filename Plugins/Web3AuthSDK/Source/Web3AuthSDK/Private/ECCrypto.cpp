@@ -326,9 +326,9 @@ unsigned char* UECCrypto::getCombinedData(FString cipherTextHex, FString ephemPu
     const unsigned char* iv = toByteArray(FStringToCharArray(encryptionIvHex));
 
     // Decode ephem key
-    const unsigned char* ephem = toByteArray(FStringToCharArray(cipherBytes));
+    const unsigned char* ephem = toByteArray(FStringToCharArray(ephemPublicKeyHex));
 
-    int32& combinedDataSize = sizeof(iv) + sizeof(ephem) + sizeof(cipherTextHex);
+    int32& combinedDataSize = sizeof(iv) + sizeof(ephem) + sizeof(cipherBytes);
     unsigned char* combinedData = new unsigned char[combinedDataSize];
 
     FMemory::Memcpy(combinedData, iv, sizeof(iv));
