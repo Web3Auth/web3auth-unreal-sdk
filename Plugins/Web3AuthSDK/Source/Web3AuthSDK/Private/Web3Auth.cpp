@@ -1,6 +1,4 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Web3Auth.h"
 #include "Web3AuthError.h"
 
@@ -516,12 +514,11 @@ FString UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
    		macKeyHex += FString::Printf(TEXT("%02x"), mac_key[i]);
    	}
     UE_LOG(LogTemp, Warning, TEXT("macKeyHex => %s"), *macKeyHex);
-
-    TArray<uint8> macKey = crypto->getMac(encryptedData, ephemPublicKey, ivKey, macKeyHex);
-	unsigned char* macKeyPtr = macKey.GetData();
+ 
+	unsigned char* macKey = crypto->getMac(encryptedData, ephemPublicKey, ivKey, macKeyHex);
     FString finalMac;
-        for (int i = 0; i < sizeof(macKeyPtr); ++i) {
-       		finalMac += FString::Printf(TEXT("%02x"), macKeyPtr[i]);
+        for (int i = 0; i < sizeof(macKey); ++i) {
+       		finalMac += FString::Printf(TEXT("%02x"), macKey[i]);
        	}
 
     FShareMetaData shareMetaData;

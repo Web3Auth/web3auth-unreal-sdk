@@ -328,13 +328,13 @@ unsigned char* UECCrypto::getCombinedData(FString cipherTextHex, FString ephemPu
     // Decode ephem key
     const unsigned char* ephem = toByteArray(FStringToCharArray(ephemPublicKeyHex));
 
-    int32& combinedDataSize = sizeof(iv) + sizeof(ephem) + sizeof(cipherBytes);
+    unsigned long combinedDataSize = sizeof(iv) + sizeof(ephem) + sizeof(cipherBytes);
     unsigned char* combinedData = new unsigned char[combinedDataSize];
 
     FMemory::Memcpy(combinedData, iv, sizeof(iv));
     FMemory::Memcpy(combinedData + sizeof(iv), ephem, sizeof(ephem));
     FMemory::Memcpy(combinedData + sizeof(iv) + sizeof(ephem), cipherBytes, sizeof(cipherBytes));
-
+	
     return combinedData;
 }
 
