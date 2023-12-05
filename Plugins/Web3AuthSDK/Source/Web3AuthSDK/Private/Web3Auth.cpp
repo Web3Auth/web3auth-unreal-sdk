@@ -20,7 +20,7 @@
 //  2) When returning from WebAuthenticate, callBackFromWebAuthenticateIOS is called. Code returns to C++ from ObjC.
 //  3) In the implementation of callBackFromWebAuthenticateIOS, thiz is used to call the c++ method (setResultUrl) on this instance.
 
-UWeb3Auth* thiz = nullptr;
+UWeb3Auth* thiz_instance = nullptr;
 
 #endif
 
@@ -31,7 +31,7 @@ JNI_METHOD void Java_com_epicgames_unreal_GameActivity_onDeepLink(JNIEnv* env, j
 
 		FString result = FString(UTF8_TO_TCHAR(UTFString));
 		UE_LOG(LogTemp, Warning, TEXT("redirect %s"), *result);
-		thiz->setResultUrl(result);
+		thiz_instance->setResultUrl(result);
 
 		Env->ReleaseStringUTFChars(uri, UTFString);
 		Env->DeleteLocalRef(uri);
@@ -144,7 +144,7 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	FString url = web3AuthOptions.sdkUrl + "/" + path + "#" + base64;
 
 #if PLATFORM_ANDROID
-	thiz = this;
+	thiz_instance = this;
 
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true)) {
 		jstring jurl = Env->NewStringUTF(TCHAR_TO_UTF8(*url));
@@ -155,7 +155,7 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 		CallJniVoidMethod(Env, jbrowserViewClass, jlaunchUrl, FJavaWrapper::GameActivityThis, jurl);
 	}
 #elif PLATFORM_IOS
-	thiz = this;
+	thiz_instance = this;
 
 	[[WebAuthenticate Singleton] launchUrl:TCHAR_TO_ANSI(*url)];
 #else
@@ -329,7 +329,7 @@ void UWeb3Auth::setLogoutEvent(FOnLogout _event) {
 #if PLATFORM_IOS
 void UWeb3Auth::callBackFromWebAuthenticateIOS(NSString* sResult) {
     FString result = FString(sResult);
-	thiz->setResultUrl(result);
+	thiz_instance->setResultUrl(result);
 }
 #endif
 
