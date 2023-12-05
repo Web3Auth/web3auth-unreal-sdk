@@ -171,6 +171,7 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
         web3AuthOptions.sdkUrl = "https://auth.web3auth.io/v5";
     }
 
+	// TODO: This result will actually come in a callback, this needs to be moved to its' own event
     FString loginId = createSession(json, 600);
     if (!loginId.IsEmpty())
     {
@@ -511,17 +512,16 @@ FString UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
 
 	UE_LOG(LogTemp, Warning, TEXT("macKeyHex => %s"), *macKeyHex);
  
-	unsigned char* macKey = crypto->getMac(encryptedData, ephemPublicKey, ivKey, macKeyHex);
-    FString finalMac;
-        for (int i = 0; i < sizeof(macKey); ++i) {
-       		finalMac += FString::Printf(TEXT("%02x"), macKey[i]);
-       	}
+	FString finalMac = crypto->getMac(encryptedData, ephemPublicKey, ivKey, macKeyHex);
+	UE_LOG(LogTemp, Warning, TEXT("finalMac => %s"), *finalMac);
 
     FShareMetaData shareMetaData;
     shareMetaData.ciphertext = encryptedData;
     shareMetaData.ephemPublicKey = ephemPublicKey;
     shareMetaData.iv = ivKey;
     shareMetaData.mac = finalMac;
+
+
 
     TSharedPtr<FJsonObject> jsonObject = MakeShareable(new FJsonObject);
     FJsonObjectConverter::UStructToJsonObject(FShareMetaData::StaticStruct(), &shareMetaData, jsonObject.ToSharedRef(), 0, 0);

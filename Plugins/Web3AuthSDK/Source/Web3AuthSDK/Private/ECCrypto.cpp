@@ -66,9 +66,13 @@ FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPub
 
 	unsigned char* mac_key = new unsigned char[SHA512_DIGEST_LENGTH - 32];
 	memcpy(mac_key, hash + 32, SHA512_DIGEST_LENGTH - 32);
+	FString macHex;
+	for (int i = 0; i < sizeof(mac_key); ++i) {
+		macHex += FString::Printf(TEXT("%02x"), mac_key[i]);
+	}
 
     //verifying mac
-	if (!hmacSha256Verify(mac_key, getCombinedData(data, ephemPublicKeyHex, encryptionIvHex), macKeyHex))
+	if (!hmacSha256Verify(macHex, getCombinedData(data, ephemPublicKeyHex, encryptionIvHex), macKeyHex))
     {
         // throw new BadMacException
         FString errorMessage = TEXT("Bad MAC error during decrypt");
@@ -322,101 +326,61 @@ FString UECCrypto::generateRandomBytes() {
 }
 
 // getCombinedData combines the IV, ephemeral public key, and cipher text into a single byte array
-unsigned char* UECCrypto::getCombinedData(FString cipherTextHex, FString ephemPublicKeyHex, FString encryptionIvHex)
+FString UECCrypto::getCombinedData(FString cipherTextHex, FString ephemPublicKeyHex, FString encryptionIvHex)
 {
-	const unsigned char* cipherBytes = toByteArray(FStringToCharArray(cipherTextHex));
-
-    // Decode IV key
-    const unsigned char* iv = toByteArray(FStringToCharArray(encryptionIvHex));
-
-    // Decode ephem key
-    const unsigned char* ephem = toByteArray(FStringToCharArray(ephemPublicKeyHex));
-
-    unsigned long combinedDataSize = sizeof(iv) + sizeof(ephem) + sizeof(cipherBytes);
-    unsigned char* combinedData = new unsigned char[combinedDataSize];
-
-    FMemory::Memcpy(combinedData, iv, sizeof(iv));
-    FMemory::Memcpy(combinedData + sizeof(iv), ephem, sizeof(ephem));
-    FMemory::Memcpy(combinedData + sizeof(iv) + sizeof(ephem), cipherBytes, sizeof(cipherBytes));
-	
-    return combinedData;
+    return encryptionIvHex + ephemPublicKeyHex + cipherTextHex;
 }
 
-unsigned char* UECCrypto::getMac(FString cipherTextHex, FString ephemPublicKeyHex, FString encryptionIvHex, FString macKeyHex)
+FString UECCrypto::getMac(FString cipherTextHex, FString ephemPublicKeyHex, FString encryptionIvHex, FString macKeyHex)
 {
-    unsigned char* combinedArray = getCombinedData(cipherTextHex, ephemPublicKeyHex, encryptionIvHex);
-    return hmacSha256Sign(toByteArray(FStringToCharArray(macKeyHex)), combinedArray);
+    FString combinedData = getCombinedData(cipherTextHex, ephemPublicKeyHex, encryptionIvHex);
+    return hmacSha256Sign(macKeyHex, combinedData);
 }
 
-unsigned char* UECCrypto::hmacSha256Sign(const unsigned char* key, const unsigned char* data)
+FString UECCrypto::hmacSha256Sign(FString key, FString data)
 {
     unsigned char* result = nullptr;
     unsigned int resultLen = SHA256_DIGEST_LENGTH; // 256-bit hash
 
-    HMAC_CTX* hmacCtx = HMAC_CTX_new();
-    if (!hmacCtx)
-    {
-        UE_LOG(LogTemp, Error, TEXT("Error creating HMAC context."));
-        return result;
-    }
+	unsigned char* keyBytes = toByteArray(FStringToCharArray(key));
+	int keyLen = key.Len() / 2;
+	unsigned char* dataBytes = toByteArray(FStringToCharArray(data));
+	int dataLen = data.Len() / 2;
+	result = new unsigned char[resultLen];
 
-    HMAC_Init_ex(hmacCtx, key, strlen(reinterpret_cast<const char*>(key)), EVP_sha256(), nullptr);
-    HMAC_Update(hmacCtx, data, strlen(reinterpret_cast<const char*>(data)));
+	HMAC_CTX* hmacCtx = HMAC_CTX_new();
+	if (!hmacCtx)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Error creating HMAC context."));
+		return FString();
+	}
 
-    result = new unsigned char[resultLen];
+    HMAC_Init_ex(hmacCtx, keyBytes, keyLen, EVP_sha256(), nullptr);
+    HMAC_Update(hmacCtx, dataBytes, dataLen);
     HMAC_Final(hmacCtx, result, &resultLen);
-
     HMAC_CTX_free(hmacCtx);
 
-    return result;
+	// Convert to hexadecimal FString
+	FString HexString;
+	for (int32 i = 0; i < (int)resultLen; ++i) {
+		HexString += FString::Printf(TEXT("%02x"), result[i]);
+	}
+
+    return HexString;
 }
 
 // hmacSha256Verify verifies that the calculated MAC matches the expected MAC
-bool UECCrypto::hmacSha256Verify(const unsigned char* key, const unsigned char* data, const FString& expectedMac)
+bool UECCrypto::hmacSha256Verify(FString key, FString data, FString expectedMac)
 {
-    const TArray<uint8>& expectedMacBytes = fStringToByteArray(expectedMac);
-    if (sizeof(key) == 0 || sizeof(data) == 0 || expectedMacBytes.Num() == 0)
+    if (key.Len() == 0 || data.Len() == 0 || expectedMac.Len() == 0)
     {
         return false;
     }
 
-    unsigned char* calculatedMac = hmacSha256Sign(key, data);
+    FString calculatedMac = hmacSha256Sign(key, data);
+	UE_LOG(LogTemp, Warning, TEXT("calculatedMac => %s"), *calculatedMac);
+    return calculatedMac.Compare(expectedMac) == 0;
 
-    if (!calculatedMac)
-    {
-        return false;
-    }
-
-    TArray<uint8> calculatedMacArray(calculatedMac, SHA256_DIGEST_LENGTH);
-    delete[] calculatedMac;
-
-    if (calculatedMacArray.Num() != expectedMacBytes.Num())
-    {
-        // The lengths of the calculated and expected MACs are different
-        return false;
-    }
-
-    return FMemory::Memcmp(calculatedMacArray.GetData(), expectedMacBytes.GetData(), calculatedMacArray.Num()) == 0;
-
-}
-
-TArray<uint8> UECCrypto::fStringToByteArray(const FString& inputString)
-{
-    const TCHAR* CharArray = *inputString;
-    int32 Size = FCString::Strlen(CharArray);
-
-    // Convert to UTF-8
-    TArray<uint8> resultArray;
-    FTCHARToUTF8 converter(CharArray);
-
-    resultArray.SetNumUninitialized(converter.Length());
-
-    if (resultArray.Num() > 0)
-    {
-        FMemory::Memcpy(resultArray.GetData(), converter.Get(), resultArray.Num());
-    }
-
-    return resultArray;
 }
 
 UECCrypto::~UECCrypto()

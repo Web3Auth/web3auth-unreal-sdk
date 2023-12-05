@@ -47,9 +47,8 @@ public:
 	FString convertBigNumToHex(const BIGNUM* bn);
 	FString generateRandomBytes();
 
-    unsigned char* getCombinedData(FString CipherTextHex, FString EphemPublicKeyHex, FString EncryptionIvHex);
-    unsigned char* getMac(FString CipherTextHex, FString EphemPublicKeyHex, FString EncryptionIvHex, FString macKeyHex);
-    unsigned char* hmacSha256Sign(const unsigned char* key, const unsigned char* data);
-    bool hmacSha256Verify(const unsigned char* key, const unsigned char* data, const FString& expectedMac);
-    TArray<uint8> fStringToByteArray(const FString& inputString);
+    FString getCombinedData(FString CipherTextHex, FString EphemPublicKeyHex, FString EncryptionIvHex);
+	FString getMac(FString CipherTextHex, FString EphemPublicKeyHex, FString EncryptionIvHex, FString macKeyHex);
+	FString hmacSha256Sign(FString key, FString data);
+    bool hmacSha256Verify(FString key, FString data, FString expectedMac);
 };
