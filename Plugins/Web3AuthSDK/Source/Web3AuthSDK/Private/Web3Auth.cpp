@@ -467,7 +467,7 @@ void UWeb3Auth::sessionTimeout() {
 					return;
 				}
 
-				unsigned char* mac_key = nullptr;
+				FString mac_key;
 				FString encryptedData = crypto->encrypt("", this->sessionId, shareMetaData.ephemPublicKey, shareMetaData.iv, mac_key);
 				shareMetaData.ciphertext = encryptedData;
 
@@ -505,15 +505,11 @@ FString UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
     FString ivKey = crypto->generateRandomBytes();
     UE_LOG(LogTemp, Warning, TEXT("ivKey => %s"), *ivKey);
 
-	unsigned char* mac_key = nullptr;
-    FString encryptedData = crypto->encrypt(jsonData, newSessionKey, ephemPublicKey, ivKey, mac_key);
+	FString macKeyHex = FString();
+    FString encryptedData = crypto->encrypt(jsonData, newSessionKey, ephemPublicKey, ivKey, macKeyHex);
     UE_LOG(LogTemp, Warning, TEXT("encryptedData => %s"), *encryptedData);
 
-    FString macKeyHex;
-    for (int i = 0; i < sizeof(mac_key); ++i) {
-   		macKeyHex += FString::Printf(TEXT("%02x"), mac_key[i]);
-   	}
-    UE_LOG(LogTemp, Warning, TEXT("macKeyHex => %s"), *macKeyHex);
+	UE_LOG(LogTemp, Warning, TEXT("macKeyHex => %s"), *macKeyHex);
  
 	unsigned char* macKey = crypto->getMac(encryptedData, ephemPublicKey, ivKey, macKeyHex);
     FString finalMac;

@@ -107,7 +107,7 @@ FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPub
 	return FString(dst.c_str());
 }
 
-FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex, unsigned char* mac_key)
+FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex, FString& mac_key)
 {
 	// Convert to bytes array
 	const char* priv_hex = FStringToCharArray(privateKeyHex);
@@ -132,7 +132,6 @@ FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPub
 	EC_KEY_set_private_key(priv_key, priv_bn);
 	EC_KEY_set_public_key(pub_key, EC_POINT_bn2point(EC_KEY_get0_group(pub_key), pub_bn, NULL, NULL));
 
-    mac_key = new unsigned char[SHA512_DIGEST_LENGTH - 32];
 	// Create the shared secret
 	unsigned char* secret = new unsigned char[32];
 	int secret_len = ECDH_compute_key(secret, EVP_MAX_KEY_LENGTH, EC_KEY_get0_public_key(pub_key), priv_key, NULL);
@@ -145,7 +144,12 @@ FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPub
 	unsigned char key[32];
 	memcpy(key, hash, 32);
 
-	memcpy(mac_key, hash + 32, SHA512_DIGEST_LENGTH - 32);
+	unsigned char mc[SHA512_DIGEST_LENGTH - 32];
+	memcpy(mc, hash + 32, SHA512_DIGEST_LENGTH - 32);
+
+	for (int i = 0; i < sizeof(mc); ++i) {
+		mac_key += FString::Printf(TEXT("%02x"), mc[i]);
+	}
 
 	// Create a new encryption context for AES-256 CBC mode with the key and IV
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();

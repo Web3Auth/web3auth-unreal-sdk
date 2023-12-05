@@ -36,8 +36,8 @@ public:
 	UECCrypto();
 	~UECCrypto();
 
-	FString decrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex, FString macKeyHex); // todo: add FString macKeyHex to params
-	FString encrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex, unsigned char* mac_key); // consider changing unsinged char* to FString reference.
+	FString decrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex, FString macKeyHex); 
+	FString encrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex, FString& mac_key);
 
 	FString generatePublicKey(const FString& privateKeyHex);
 	FString generateECDSASignature(const FString& privateKeyHex, const FString& data);
@@ -47,7 +47,6 @@ public:
 	FString convertBigNumToHex(const BIGNUM* bn);
 	FString generateRandomBytes();
 
-    //todo: Remove TArray<uint8> from function signatures.
     unsigned char* getCombinedData(FString CipherTextHex, FString EphemPublicKeyHex, FString EncryptionIvHex);
     unsigned char* getMac(FString CipherTextHex, FString EphemPublicKeyHex, FString EncryptionIvHex, FString macKeyHex);
     unsigned char* hmacSha256Sign(const unsigned char* key, const unsigned char* data);
