@@ -1,11 +1,5 @@
 #pragma once
 
-#if PLATFORM_WINDOWS
-	#pragma warning(disable:4996)
-	#pragma comment(lib, "crypt32.lib")
-	#pragma comment(lib, "WS2_32.lib")
-#endif
-
 #include "CoreMinimal.h"
 
 #pragma comment(lib, "crypt32.lib")

@@ -692,7 +692,6 @@ class WEB3AUTHSDK_API UWeb3Auth : public UGameInstanceSubsystem
 
 	TSharedPtr<IHttpRouter> httpRouter;
 	TArray<TPair<TSharedPtr<IHttpRouter>, FHttpRouteHandle>> httpRoutes;
-	FWeb3AuthResponse web3AuthResponse;
 	UPROPERTY(Transient)
 	UECCrypto* crypto;
 	UPROPERTY(Transient)
@@ -705,8 +704,10 @@ protected:
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     virtual void Deinitialize() override;
 public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FWeb3AuthResponse web3AuthResponse;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FString sessionId = FString();
 
 	UFUNCTION(BlueprintCallable)

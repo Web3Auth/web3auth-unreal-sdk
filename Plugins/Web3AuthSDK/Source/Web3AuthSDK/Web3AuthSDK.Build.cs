@@ -84,15 +84,6 @@ public class Web3AuthSDK : ModuleRules
         if (Target.Platform == UnrealTargetPlatform.Win64)
         {
             PrivateDependencyModuleNames.Add("OpenSSL");
-
-            if (Target.LinkType == TargetLinkType.Monolithic)
-            {
-                PrivateDependencyModuleNames.Add("ws2_32");
-            }
-            else
-            {
-                PublicAdditionalLibraries.Add("ws2_32.lib");
-            }
         }
 
         DynamicallyLoadedModuleNames.AddRange(
