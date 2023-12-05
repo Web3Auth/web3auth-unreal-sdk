@@ -14,7 +14,7 @@ using std::size_t;
 
 
 void Keccak256::getHash(const uint8_t msg[], size_t len, uint8_t hashResult[HASH_LEN]) {
-	//assert((msg != nullptr || len == 0) && hashResult != nullptr);
+	assert((msg != nullptr || len == 0) && hashResult != nullptr);
 	uint64_t state[5][5] = {};
 
 	// XOR each message byte into the state, and absorb full blocks
