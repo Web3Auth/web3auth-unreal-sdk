@@ -202,38 +202,14 @@ void UWeb3Auth::setResultUrl(FString hash) {
 
 	UE_LOG(LogTemp, Warning, TEXT("respose base64 %s"), *hash);
 
-	FString json = "";
+    int32 equalsIndex;
+    if (hash.FindChar('=', equalsIndex)) {
+        FString newSessionId = hash.Mid(equalsIndex + 1);
+        UE_LOG(LogTemp, Warning, TEXT("newSessionId %s"), *newSessionId);
+        this->sessionId = newSessionId;
+    }
 
-	FString output = hash;
-	output = output.Replace(TEXT("-"), TEXT("+"));
-	output = output.Replace(TEXT("_"), TEXT("/"));
-	switch (output.Len() % 4)	{
-		case 0: break;
-		case 2: output += "=="; break;
-		case 3: output += "="; break;
-		default: 
-			return;
-	}
-
-	FBase64::Decode(output, json);
-
-	UE_LOG(LogTemp, Warning, TEXT("respose json %s"), *json);
-
-	if (!FJsonObjectConverter::JsonObjectStringToUStruct(json, &web3AuthResponse, 0, 0)) {
-		UE_LOG(LogTemp, Warning, TEXT("failed to parse json"));
-	}
-
-	if (web3AuthResponse.error != "") {
-		return;
-	}
-
-	if (web3AuthResponse.privKey.IsEmpty() || web3AuthResponse.privKey == "0000000000000000000000000000000000000000000000000000000000000000") {
-		this->logoutEvent.ExecuteIfBound();
-	}
-	else {
-		this->sessionId = web3AuthResponse.sessionId;
-		this->loginEvent.ExecuteIfBound(web3AuthResponse);
-	}
+    authorizeSession();
 }
 
 template <typename StructType>
@@ -405,8 +381,8 @@ void UWeb3Auth::authorizeSession() {
 				TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(output);
 
 				if (FJsonSerializer::Deserialize(JsonReader, tempJson) && tempJson.IsValid()) {
-					tempJson->SetObjectField("userInfo", tempJson->GetObjectField("store"));
-					tempJson->RemoveField("store");
+					/*tempJson->SetObjectField("userInfo", tempJson->GetObjectField("store"));
+					tempJson->RemoveField("store");*/
 
 					FString json;
 					TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&json);
@@ -425,7 +401,9 @@ void UWeb3Auth::authorizeSession() {
 				}
 
 		});
-	}
+	} else {
+        UE_LOG(LogTemp, Error, TEXT("Something went wrong. Please try again later."));
+    }
 }
 
 void UWeb3Auth::sessionTimeout() {
