@@ -79,9 +79,6 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
             break;
 	}
 
-	if (web3AuthOptions.redirectUrl != "")
-		initParams->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
-
 	/*FMfaSettings defaultMFA;
 
 	if (!(web3AuthOptions.mfaSettings == defaultMFA))
@@ -99,6 +96,9 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 #if !PLATFORM_ANDROID && !PLATFORM_IOS
 	FString redirectUrl = startLocalWebServer();
 	initParams->SetStringField("redirectUrl", redirectUrl);
+#elif
+	if (web3AuthOptions.redirectUrl != "")
+		initParams->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
 #endif
 
     switch (web3AuthOptions.buildEnv) {
@@ -142,19 +142,19 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	paramMap->SetStringField("actionType", "login");
 
 	TSharedPtr<FJsonObject> params = MakeShareable(new FJsonObject);
-
-    if (web3AuthOptions.redirectUrl != "")
+    
+	#if !PLATFORM_ANDROID && !PLATFORM_IOS
+    	params->SetStringField("redirectUrl", redirectUrl);
+	#elif
+	if (web3AuthOptions.redirectUrl != "")
         params->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
+	#endif
 
     if(loginParams->curve == FCurve::SECP256K1)
         params->SetStringField("curve", "secp256k1");
     else {
         params->SetStringField("curve", "ed25519");
     }
-
-#if !PLATFORM_ANDROID && !PLATFORM_IOS
-    params->SetStringField("redirectUrl", redirectUrl);
-#endif
 
 	if (extraParams != NULL) {
 		params = extraParams;
