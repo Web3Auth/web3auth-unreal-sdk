@@ -33,6 +33,11 @@ FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPub
 	const char* priv_hex = FStringToCharArray(privateKeyHex);
 	const char* pub_hex  = FStringToCharArray(ephemPublicKeyHex);
 
+    UE_LOG(LogTemp, Warning, TEXT("priv_hex => %s"), *privateKeyHex);
+    UE_LOG(LogTemp, Warning, TEXT("pub_hex => %s"), *ephemPublicKeyHex);
+    UE_LOG(LogTemp, Warning, TEXT("macKeyHex => %s"), *macKeyHex);
+    UE_LOG(LogTemp, Warning, TEXT("encryptionIvHex => %s"), *encryptionIvHex);
+
 	// Decode IV key
 	const unsigned char* iv = toByteArray(FStringToCharArray(encryptionIvHex));
 
@@ -64,19 +69,22 @@ FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPub
 	unsigned char key[32];
 	memcpy(key, hash, 32);
 
-	unsigned char* mac_key = new unsigned char[SHA512_DIGEST_LENGTH - 32];
+	unsigned char mac_key[SHA512_DIGEST_LENGTH - 32];
 	memcpy(mac_key, hash + 32, SHA512_DIGEST_LENGTH - 32);
 	FString macHex;
 	for (int i = 0; i < sizeof(mac_key); ++i) {
 		macHex += FString::Printf(TEXT("%02x"), mac_key[i]);
 	}
 
+    UE_LOG(LogTemp, Warning, TEXT("macHex during decrypt => %s"), *macHex);
+
     //verifying mac
 	if (!hmacSha256Verify(macHex, getCombinedData(data, ephemPublicKeyHex, encryptionIvHex), macKeyHex))
     {
         // throw new BadMacException
         FString errorMessage = TEXT("Bad MAC error during decrypt");
-        throw std::runtime_error(TCHAR_TO_UTF8(*errorMessage));
+        return FString(errorMessage);
+        //throw std::runtime_error(TCHAR_TO_UTF8(*errorMessage));
     }
 
 	// Create a new encryption context for AES-256 CBC mode with the key and IV
@@ -113,6 +121,10 @@ FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPub
 
 FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex, FString& mac_key)
 {
+    UE_LOG(LogTemp, Warning, TEXT("priv_hex => %s"), *privateKeyHex);
+    UE_LOG(LogTemp, Warning, TEXT("pub_hex => %s"), *ephemPublicKeyHex);
+    UE_LOG(LogTemp, Warning, TEXT("encryptionIvHex => %s"), *encryptionIvHex);
+
 	// Convert to bytes array
 	const char* priv_hex = FStringToCharArray(privateKeyHex);
 	const char* pub_hex = FStringToCharArray(ephemPublicKeyHex);
@@ -154,6 +166,8 @@ FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPub
 	for (int i = 0; i < sizeof(mc); ++i) {
 		mac_key += FString::Printf(TEXT("%02x"), mc[i]);
 	}
+
+    UE_LOG(LogTemp, Warning, TEXT("mac_key during encrypt => %s"), *mac_key);
 
 	// Create a new encryption context for AES-256 CBC mode with the key and IV
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
@@ -309,9 +323,9 @@ FString UECCrypto::convertBigNumToHex(const BIGNUM* bn) {
     return result;
 }
 
-FString UECCrypto::generateRandomBytes() {
+FString UECCrypto::generateRandomBytes(int length) {
     // Generate random bytes
-    const int32 numBytes = 32;
+    const int32 numBytes = length;
     unsigned char* buffer = new unsigned char[numBytes];
     RAND_bytes(buffer, numBytes);
 
@@ -379,6 +393,7 @@ bool UECCrypto::hmacSha256Verify(FString key, FString data, FString expectedMac)
 
     FString calculatedMac = hmacSha256Sign(key, data);
 	UE_LOG(LogTemp, Warning, TEXT("calculatedMac => %s"), *calculatedMac);
+    UE_LOG(LogTemp, Warning, TEXT("expectedMac => %s"), *expectedMac);
     return calculatedMac.Compare(expectedMac) == 0;
 
 }

@@ -82,14 +82,14 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	if (web3AuthOptions.redirectUrl != "")
 		initParams->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
 
-	FMfaSettings defaultMFA;
+	/*FMfaSettings defaultMFA;
 
 	if (!(web3AuthOptions.mfaSettings == defaultMFA))
     {
         FString mfaSettingsJson;
         FJsonObjectConverter::UStructToJsonObjectString(web3AuthOptions.mfaSettings, mfaSettingsJson);
         initParams->SetStringField(TEXT("mfaSettings"), mfaSettingsJson);
-    }
+    }*/
 
     if (web3AuthOptions.sessionTime > 0)
     {
@@ -143,6 +143,19 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 
 	TSharedPtr<FJsonObject> params = MakeShareable(new FJsonObject);
 
+    if (web3AuthOptions.redirectUrl != "")
+        params->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
+
+    if(loginParams->curve == FCurve::SECP256K1)
+        params->SetStringField("curve", "secp256k1");
+    else {
+        params->SetStringField("curve", "ed25519");
+    }
+
+#if !PLATFORM_ANDROID && !PLATFORM_IOS
+    params->SetStringField("redirectUrl", redirectUrl);
+#endif
+
 	if (extraParams != NULL) {
 		params = extraParams;
 	}
@@ -163,51 +176,15 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	//FString base64 = FBase64::Encode(jsonOutput);
 
 	if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
-        web3AuthOptions.sdkUrl = "https://staging-auth.web3auth.io/v5";
+        web3AuthOptions.sdkUrl = "https://staging-auth.web3auth.io/v6";
     }
     else if(web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
         web3AuthOptions.sdkUrl = "https://develop-auth.web3auth.io";
     } else {
-        web3AuthOptions.sdkUrl = "https://auth.web3auth.io/v5";
+        web3AuthOptions.sdkUrl = "https://auth.web3auth.io/v6";
     }
 
-	// TODO: This result will actually come in a callback, this needs to be moved to its' own event
-    FString loginId = createSession(json, 600);
-    if (!loginId.IsEmpty())
-    {
-        TSharedPtr<FJsonObject> loginIdObject = MakeShareable(new FJsonObject);
-        loginIdObject->SetStringField(TEXT("loginId"), loginId);
-
-        // Convert to Base64
-        FString output;
-        TSharedRef< TJsonWriter<> > outputWriter = TJsonWriterFactory<>::Create(&output);
-        FJsonSerializer::Serialize(loginIdObject.ToSharedRef(), outputWriter);
-        FString encode = FBase64::Encode(output);
-
-        // Build the URI
-        FString url = web3AuthOptions.sdkUrl + "/" + path + "#" + "b64Params=" + encode;
-
-        #if PLATFORM_ANDROID
-			thiz_instance = this;
-            if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true)) {
-            jstring jurl = Env->NewStringUTF(TCHAR_TO_UTF8(*url));
-
-            jclass jbrowserViewClass = FAndroidApplication::FindJavaClass("com/Plugins/Web3AuthSDK/BrowserView");
-            static jmethodID jlaunchUrl = FJavaWrapper::FindStaticMethod(Env, jbrowserViewClass, "launchUrl", "(Landroid/app/Activity;Ljava/lang/String;)V", false);
-
-            CallJniVoidMethod(Env, jbrowserViewClass, jlaunchUrl, FJavaWrapper::GameActivityThis, jurl);
-        }
-        #elif PLATFORM_IOS
-			thiz_instance = this;
-            [[WebAuthenticate Singleton] launchUrl:TCHAR_TO_ANSI(*url)];
-        #else
-            FPlatformProcess::LaunchURL(*url, NULL, NULL);
-            #endif
-    }
-    else
-    {
-        UE_LOG(LogTemp, Error, TEXT("Failed to create session."));
-    }
+    createSession(json, 600);
 }
 
 void UWeb3Auth::processLogin(FLoginParams loginParams) {
@@ -496,15 +473,17 @@ void UWeb3Auth::sessionTimeout() {
 	}
 }
 
-FString UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
+void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
     FString newSessionKey = crypto->generateRandomSessionKey();
     UE_LOG(LogTemp, Warning, TEXT("newSessionKey => %s"), *newSessionKey);
 
     FString ephemPublicKey = crypto->generatePublicKey(newSessionKey);
     UE_LOG(LogTemp, Warning, TEXT("ephemPublicKey => %s"), *ephemPublicKey);
 
-    FString ivKey = crypto->generateRandomBytes();
+    FString ivKey = crypto->generateRandomBytes(16);
     UE_LOG(LogTemp, Warning, TEXT("ivKey => %s"), *ivKey);
+
+    UE_LOG(LogTemp, Warning, TEXT("jsonData => %s"), *jsonData);
 
 	FString macKeyHex = FString();
     FString encryptedData = crypto->encrypt(jsonData, newSessionKey, ephemPublicKey, ivKey, macKeyHex);
@@ -513,6 +492,13 @@ FString UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
 	UE_LOG(LogTemp, Warning, TEXT("macKeyHex => %s"), *macKeyHex);
  
 	FString finalMac = crypto->getMac(encryptedData, ephemPublicKey, ivKey, macKeyHex);
+
+    if (!crypto->hmacSha256Verify(macKeyHex, crypto->getCombinedData(encryptedData, ephemPublicKey, ivKey), finalMac))
+    {
+        // throw new BadMacException
+        FString errorMessage = TEXT("Bad MAC error during encryption");
+    }
+
 	UE_LOG(LogTemp, Warning, TEXT("finalMac => %s"), *finalMac);
 
     FShareMetaData shareMetaData;
@@ -521,7 +507,8 @@ FString UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
     shareMetaData.iv = ivKey;
     shareMetaData.mac = finalMac;
 
-
+    FString output = crypto->decrypt(shareMetaData.ciphertext, newSessionKey, shareMetaData.ephemPublicKey, shareMetaData.iv, shareMetaData.mac);
+    UE_LOG(LogTemp, Warning, TEXT("output %s"), *output);
 
     TSharedPtr<FJsonObject> jsonObject = MakeShareable(new FJsonObject);
     FJsonObjectConverter::UStructToJsonObject(FShareMetaData::StaticStruct(), &shareMetaData, jsonObject.ToSharedRef(), 0, 0);
@@ -529,6 +516,9 @@ FString UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
     FString jsonString;
     TSharedRef<TJsonWriter<TCHAR>> jsonWriter = TJsonWriterFactory<>::Create(&jsonString);
     FJsonSerializer::Serialize(jsonObject.ToSharedRef(), jsonWriter);
+
+    UE_LOG(LogTemp, Warning, TEXT("jsonString => %s"), *jsonString);
+
     FString sig = crypto->generateECDSASignature(newSessionKey, jsonString);
 
     FLogoutApiRequest request;
@@ -540,10 +530,39 @@ FString UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
     web3AuthApi->CreateSession(request, [this, newSessionKey](FString response)
     	{
     	    UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response);
-    	    return FString(newSessionKey);
+            handleCreateSessionResponse("start", newSessionKey);
     	});
+}
 
-    return FString("");
+void UWeb3Auth::handleCreateSessionResponse(FString path, FString newSessionKey) {
+        TSharedPtr<FJsonObject> loginIdObject = MakeShareable(new FJsonObject);
+        loginIdObject->SetStringField(TEXT("loginId"), newSessionKey);
+
+        // Convert to Base64
+        FString output;
+        TSharedRef< TJsonWriter<> > outputWriter = TJsonWriterFactory<>::Create(&output);
+        FJsonSerializer::Serialize(loginIdObject.ToSharedRef(), outputWriter);
+        FString encode = FBase64::Encode(output);
+
+        // Build the URI
+        FString url = web3AuthOptions.sdkUrl + "/" + path + "#" + "b64Params=" + encode;
+
+#if PLATFORM_ANDROID
+        thiz_instance = this;
+            if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true)) {
+            jstring jurl = Env->NewStringUTF(TCHAR_TO_UTF8(*url));
+
+            jclass jbrowserViewClass = FAndroidApplication::FindJavaClass("com/Plugins/Web3AuthSDK/BrowserView");
+            static jmethodID jlaunchUrl = FJavaWrapper::FindStaticMethod(Env, jbrowserViewClass, "launchUrl", "(Landroid/app/Activity;Ljava/lang/String;)V", false);
+
+            CallJniVoidMethod(Env, jbrowserViewClass, jlaunchUrl, FJavaWrapper::GameActivityThis, jurl);
+        }
+#elif PLATFORM_IOS
+        thiz_instance = this;
+            [[WebAuthenticate Singleton] launchUrl:TCHAR_TO_ANSI(*url)];
+#else
+        FPlatformProcess::LaunchURL(*url, NULL, NULL);
+#endif
 }
 
 void UWeb3Auth::Initialize(FSubsystemCollectionBase& Collection) {

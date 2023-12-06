@@ -45,7 +45,7 @@ public:
 	FString generateRandomSessionKey();
 	EC_KEY* generateECKeyPair();
 	FString convertBigNumToHex(const BIGNUM* bn);
-	FString generateRandomBytes();
+	FString generateRandomBytes(int length);
 
     FString getCombinedData(FString CipherTextHex, FString EphemPublicKeyHex, FString EncryptionIvHex);
 	FString getMac(FString CipherTextHex, FString EphemPublicKeyHex, FString EncryptionIvHex, FString macKeyHex);

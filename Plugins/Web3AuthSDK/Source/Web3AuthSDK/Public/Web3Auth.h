@@ -765,5 +765,6 @@ private:
 
 	void authorizeSession();
 	void sessionTimeout();
-	FString createSession(const FString& jsonData, int32 sessionTime);
+	void createSession(const FString& jsonData, int32 sessionTime);
+    void handleCreateSessionResponse(FString path, FString newSessionKey);
 };
