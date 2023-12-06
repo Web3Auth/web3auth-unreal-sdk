@@ -134,7 +134,7 @@ FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPub
 
 	// Decode cipher text
 	const unsigned char* src = (unsigned char*)FStringToCharArray(data);
-	int srclen = data.Len() / 2;
+	int srclen = data.Len();
 
 	// Convert to BIGNUM
 	BIGNUM* priv_bn = BN_new();
@@ -174,20 +174,18 @@ FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPub
 	EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
 
 	// Allocate a string buffer for the decrypted data
-	std::string dst;
-	dst.resize(srclen + EVP_CIPHER_block_size(EVP_aes_256_cbc()));
+	//std::string dst;
+	//dst.resize(srclen + EVP_CIPHER_block_size(EVP_aes_256_cbc()));
+	unsigned char* dst = new unsigned char[4096];
 
 	// Decrypt the input data
+	int cipher_len;
 	int outlen;
-	EVP_EncryptUpdate(ctx, (unsigned char*)dst.data(), &outlen, src, srclen);
-
+	EVP_EncryptUpdate(ctx, dst, &outlen, src, srclen);
+	cipher_len = outlen;
 	// Finalize the decryption and retrieve any remaining data
-	int finaloutlen;
-	EVP_EncryptFinal_ex(ctx, (unsigned char*)dst.data() + outlen, &finaloutlen);
-
-	// Resize the buffer to the actual decrypted length
-	dst.resize(outlen + finaloutlen);
-
+	EVP_EncryptFinal_ex(ctx, dst + outlen, &outlen);
+	cipher_len += outlen;
 	// Free the encryption context
 	EVP_CIPHER_CTX_free(ctx);
 
@@ -198,12 +196,13 @@ FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPub
 	EC_KEY_free(pub_key);
 	EVP_cleanup();
 
-	const char* buf = dst.c_str();
-
 	FString hex;
-	for (int i = 0; i < strlen(buf); ++i) {
-		hex += FString::Printf(TEXT("%02x"), buf[i]);
+	for (int i = 0; i < cipher_len; ++i) {
+		hex += FString::Printf(TEXT("%02x"), dst[i]);
 	}
+
+	delete[] dst;
+
 	return hex;
 }
 
