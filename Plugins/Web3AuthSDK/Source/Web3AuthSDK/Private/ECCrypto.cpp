@@ -29,7 +29,6 @@ UECCrypto::UECCrypto() {
 
 FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex, FString macKeyHex)
 {
-	// Convert to bytes array
 	const char* priv_hex = FStringToCharArray(privateKeyHex);
 	const char* pub_hex  = FStringToCharArray(ephemPublicKeyHex);
 
@@ -38,10 +37,10 @@ FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPub
     UE_LOG(LogTemp, Warning, TEXT("macKeyHex => %s"), *macKeyHex);
     UE_LOG(LogTemp, Warning, TEXT("encryptionIvHex => %s"), *encryptionIvHex);
 
-	// Decode IV key
+	// Decode IV key to bytes
 	const unsigned char* iv = toByteArray(FStringToCharArray(encryptionIvHex));
 
-	// Decode cipher text
+	// Decode cipher text to bytes from hex
 	const unsigned char* src = toByteArray(FStringToCharArray(data));
 	int srclen = data.Len() / 2;
 
@@ -69,6 +68,7 @@ FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPub
 	unsigned char key[32];
 	memcpy(key, hash, 32);
 
+	// Calculate mac_key
 	unsigned char mac_key[SHA512_DIGEST_LENGTH - 32];
 	memcpy(mac_key, hash + 32, SHA512_DIGEST_LENGTH - 32);
 	FString macHex;
@@ -78,33 +78,33 @@ FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPub
 
     UE_LOG(LogTemp, Warning, TEXT("macHex during decrypt => %s"), *macHex);
 
-    //verifying mac
+    // Verify mac
 	if (!hmacSha256Verify(macHex, getCombinedData(data, ephemPublicKeyHex, encryptionIvHex), macKeyHex))
     {
-        // throw new BadMacException
-        FString errorMessage = TEXT("Bad MAC error during decrypt");
-        return FString(errorMessage);
-        //throw std::runtime_error(TCHAR_TO_UTF8(*errorMessage));
+        return FString(TEXT("Bad MAC error during decrypt"));
     }
 
 	// Create a new encryption context for AES-256 CBC mode with the key and IV
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
 	EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
-	EVP_CIPHER_CTX_set_padding(ctx, 0);
+	
 	// Allocate a string buffer for the decrypted data
 	std::string dst;
-	dst.resize(srclen + EVP_CIPHER_block_size(EVP_aes_256_cbc()));
+	dst.resize(srclen + (encryptionIvHex.Len()/2) + EVP_CIPHER_block_size(EVP_aes_256_cbc()));
 
 	// Decrypt the input data
+	int cipher_len;
 	int outlen;
 	EVP_DecryptUpdate(ctx, (unsigned char*)dst.data(), &outlen, src, srclen);
-
+	cipher_len = outlen;
 	// Finalize the decryption and retrieve any remaining data
-	int finaloutlen;
-	EVP_DecryptFinal_ex(ctx, (unsigned char*)dst.data() + outlen, &finaloutlen);
+	EVP_DecryptFinal_ex(ctx, (unsigned char*)dst.data() + outlen, &outlen);
+	cipher_len += outlen;
 
 	// Resize the buffer to the actual decrypted length
-	dst.resize(outlen + finaloutlen);
+	dst.resize(cipher_len);
+	// Put a null terminator at cipher_len
+	dst[cipher_len] = '\0';
 
 	// Free the encryption context
 	EVP_CIPHER_CTX_free(ctx);
@@ -125,14 +125,12 @@ FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPub
     UE_LOG(LogTemp, Warning, TEXT("pub_hex => %s"), *ephemPublicKeyHex);
     UE_LOG(LogTemp, Warning, TEXT("encryptionIvHex => %s"), *encryptionIvHex);
 
-	// Convert to bytes array
 	const char* priv_hex = FStringToCharArray(privateKeyHex);
 	const char* pub_hex = FStringToCharArray(ephemPublicKeyHex);
 
-	// Decode IV key
+	// Convert IV key to bytes
 	const unsigned char* iv = toByteArray(FStringToCharArray(encryptionIvHex));
 
-	// Decode cipher text
 	const unsigned char* src = (unsigned char*)FStringToCharArray(data);
 	int srclen = data.Len();
 
@@ -160,6 +158,7 @@ FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPub
 	unsigned char key[32];
 	memcpy(key, hash, 32);
 
+    // Calculate mac_key
 	unsigned char mc[SHA512_DIGEST_LENGTH - 32];
 	memcpy(mc, hash + 32, SHA512_DIGEST_LENGTH - 32);
 
@@ -177,16 +176,24 @@ FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPub
 	// plaintext_length + iv_length + aes_block_size
 	unsigned char* dst = new unsigned char[srclen + (encryptionIvHex.Len()/2) + EVP_CIPHER_block_size(EVP_aes_256_cbc())];
 	
-	// Decrypt the input data
+	// Ecrypt the input data
 	int cipher_len;
 	int outlen;
 	EVP_EncryptUpdate(ctx, dst, &outlen, src, srclen);
 	cipher_len = outlen;
-	// Finalize the decryption and retrieve any remaining data
+	// Finalize the encryption
 	EVP_EncryptFinal_ex(ctx, dst + outlen, &outlen);
 	cipher_len += outlen;
 	// Free the encryption context
 	EVP_CIPHER_CTX_free(ctx);
+
+
+
+	// Convert ciphertext to hex
+	FString hex;
+	for (int i = 0; i < cipher_len; ++i) {
+		hex += FString::Printf(TEXT("%02x"), dst[i]);
+	}
 
 	// Clean up resources
 	BN_free(priv_bn);
@@ -194,12 +201,6 @@ FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPub
 	EC_KEY_free(priv_key);
 	EC_KEY_free(pub_key);
 	EVP_cleanup();
-
-	FString hex;
-	for (int i = 0; i < cipher_len; ++i) {
-		hex += FString::Printf(TEXT("%02x"), dst[i]);
-	}
-
 	delete[] dst;
 
 	return hex;
