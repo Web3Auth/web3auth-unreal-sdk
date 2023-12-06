@@ -2,9 +2,6 @@
 
 #include "CoreMinimal.h"
 
-#pragma comment(lib, "crypt32.lib")
-#pragma comment(lib, "WS2_32.lib")
-
 #define UI UI_ST
 THIRD_PARTY_INCLUDES_START
 #include <openssl/ec.h>
