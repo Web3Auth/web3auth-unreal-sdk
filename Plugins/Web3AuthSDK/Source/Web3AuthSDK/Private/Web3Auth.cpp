@@ -142,13 +142,6 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	paramMap->SetStringField("actionType", "login");
 
 	TSharedPtr<FJsonObject> params = MakeShareable(new FJsonObject);
-    
-	#if !PLATFORM_ANDROID && !PLATFORM_IOS
-    	params->SetStringField("redirectUrl", redirectUrl);
-	#elif
-	if (web3AuthOptions.redirectUrl != "")
-        params->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
-	#endif
 
     if(loginParams->curve == FCurve::SECP256K1)
         params->SetStringField("curve", "secp256k1");
@@ -165,6 +158,10 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 			params->SetField(o.Key, o.Value);
 		}
 	}
+
+	#if !PLATFORM_ANDROID && !PLATFORM_IOS
+    	params->SetStringField("redirectUrl", redirectUrl);
+	#endif
 
 	paramMap->SetObjectField("params", params.ToSharedRef());
 

@@ -173,11 +173,10 @@ FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPub
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
 	EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
 
-	// Allocate a string buffer for the decrypted data
-	//std::string dst;
-	//dst.resize(srclen + EVP_CIPHER_block_size(EVP_aes_256_cbc()));
-	unsigned char* dst = new unsigned char[4096];
-
+	// Allocate a buffer for the ciphertext, calculating at most how much space is needed.
+	// plaintext_length + iv_length + aes_block_size
+	unsigned char* dst = new unsigned char[srclen + (encryptionIvHex.Len()/2) + EVP_CIPHER_block_size(EVP_aes_256_cbc())];
+	
 	// Decrypt the input data
 	int cipher_len;
 	int outlen;
