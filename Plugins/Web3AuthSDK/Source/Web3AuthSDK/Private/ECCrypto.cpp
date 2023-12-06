@@ -32,11 +32,6 @@ FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPub
 	const char* priv_hex = FStringToCharArray(privateKeyHex);
 	const char* pub_hex  = FStringToCharArray(ephemPublicKeyHex);
 
-    UE_LOG(LogTemp, Warning, TEXT("priv_hex => %s"), *privateKeyHex);
-    UE_LOG(LogTemp, Warning, TEXT("pub_hex => %s"), *ephemPublicKeyHex);
-    UE_LOG(LogTemp, Warning, TEXT("macKeyHex => %s"), *macKeyHex);
-    UE_LOG(LogTemp, Warning, TEXT("encryptionIvHex => %s"), *encryptionIvHex);
-
 	// Decode IV key to bytes
 	const unsigned char* iv = toByteArray(FStringToCharArray(encryptionIvHex));
 
@@ -121,10 +116,6 @@ FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPub
 
 FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPublicKeyHex, FString encryptionIvHex, FString& mac_key)
 {
-    UE_LOG(LogTemp, Warning, TEXT("priv_hex => %s"), *privateKeyHex);
-    UE_LOG(LogTemp, Warning, TEXT("pub_hex => %s"), *ephemPublicKeyHex);
-    UE_LOG(LogTemp, Warning, TEXT("encryptionIvHex => %s"), *encryptionIvHex);
-
 	const char* priv_hex = FStringToCharArray(privateKeyHex);
 	const char* pub_hex = FStringToCharArray(ephemPublicKeyHex);
 

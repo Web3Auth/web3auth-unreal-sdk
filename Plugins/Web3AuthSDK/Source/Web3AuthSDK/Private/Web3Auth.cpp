@@ -96,7 +96,7 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 #if !PLATFORM_ANDROID && !PLATFORM_IOS
 	FString redirectUrl = startLocalWebServer();
 	initParams->SetStringField("redirectUrl", redirectUrl);
-#elif
+#else
 	if (web3AuthOptions.redirectUrl != "")
 		initParams->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
 #endif
