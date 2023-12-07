@@ -197,7 +197,7 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
         web3AuthOptions.sdkUrl = "https://auth.web3auth.io/v6";
     }
 
-    createSession(json, 86400);
+    createSession(json, 600);
 }
 
 void UWeb3Auth::processLogin(FLoginParams loginParams) {
