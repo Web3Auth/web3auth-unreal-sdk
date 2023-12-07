@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <assert.h>
 
  /*
   * Computes the Keccak-256 hash of a sequence of bytes. The hash value is 32 bytes long.

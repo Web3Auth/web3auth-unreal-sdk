@@ -103,9 +103,21 @@ enum class FMFALevel : uint8
 };
 
 UENUM(BlueprintType)
+enum class FLanguage : uint8
+{
+	en, de, ja, ko, zh, es, fr, pt, nl
+};
+
+UENUM(BlueprintType)
+enum class FThemeModes : uint8
+{
+	light, dark
+};
+
+UENUM(BlueprintType)
 enum class FNetwork : uint8
 {
-	MAINNET = 0, TESTNET = 1, CYAN = 2, AQUA = 3
+	MAINNET = 0, TESTNET = 1, CYAN = 2, AQUA = 3, SAPPHIRE_DEVNET = 4, SAPPHIRE_MAINNET = 5
 };
 
 UENUM(BlueprintType)
@@ -113,6 +125,14 @@ enum class FChainNamespace : uint8
 {
     EIP155,
     SOLANA
+};
+
+UENUM(BlueprintType)
+enum class FBuildEnv : uint8
+{
+    PRODUCTION,
+    STAGING,
+	TESTING
 };
 
 USTRUCT(BlueprintType)
@@ -350,10 +370,10 @@ struct FLoginParams
 		FString redirectUrl;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FMFALevel mfaLevel;
+		FMFALevel mfaLevel = FMFALevel::OPTIONAL;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FCurve curve;
+		FCurve curve = FCurve::SECP256K1;
 
 	FLoginParams() {};
 
@@ -418,6 +438,9 @@ struct FUserInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString oAuthAccessToken;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	bool isMfaEnabled;
+
 	FUserInfo() {};
 
 	bool IsEmpty() const {
@@ -442,7 +465,7 @@ struct FWhiteLabelData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString name;
+		FString appName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString logoLight;
@@ -451,24 +474,106 @@ struct FWhiteLabelData
 		FString logoDark;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString defaultLanguage;
+    	FLanguage defaultLanguage = FLanguage::en;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		bool dark;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FThemeModes mode;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		TMap<FString, FString> theme;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FString appUrl;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	bool useLogoLoader;
+
 	FWhiteLabelData() {};
 
 	void operator= (const FWhiteLabelData& other) {
-		name = other.name;
+		appName = other.appName;
 		logoLight = other.logoLight;
 		logoDark = other.logoDark;
 		defaultLanguage = other.defaultLanguage;
-		dark = other.dark;
+		mode = other.mode;
 		theme = other.theme;
+		appUrl = other.appUrl;
+		useLogoLoader = other.useLogoLoader;
 	}
+
+};
+
+USTRUCT(BlueprintType)
+struct FMfaSetting
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	bool enable;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        int32 priority;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        bool mandatory;
+
+	FMfaSetting() {};
+
+	void operator= (const FMfaSetting& other) {
+		enable = other.enable;
+		priority = other.priority;
+		mandatory = other.mandatory;
+	}
+
+	bool operator==(const FMfaSetting& other) const
+    {
+    if (enable == other.enable &&
+	    priority == other.priority &&
+	    mandatory == other.mandatory) 
+		{
+			return true;
+		}
+	return false;
+    }
+};
+
+USTRUCT(BlueprintType)
+struct FMfaSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FMfaSetting deviceShareFactor;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FMfaSetting backUpShareFactor;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FMfaSetting socialBackupFactor;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FMfaSetting passwordFactor;
+
+	FMfaSettings() {};
+
+	void operator= (const FMfaSettings& other) {
+		deviceShareFactor = other.deviceShareFactor;
+		backUpShareFactor = other.backUpShareFactor;
+		socialBackupFactor = other.socialBackupFactor;
+		passwordFactor = other.passwordFactor;
+	}
+
+	bool operator==(const FMfaSettings& other) const
+    {
+    if (deviceShareFactor == other.deviceShareFactor &&
+	    backUpShareFactor == other.backUpShareFactor  &&
+	    socialBackupFactor == other.socialBackupFactor &&
+	    passwordFactor == other.passwordFactor) 
+		{
+			return true;
+		}
+	return false;
+    }
 
 };
 
@@ -490,6 +595,9 @@ struct FWeb3AuthOptions
 		FNetwork network;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FBuildEnv buildEnv;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FWhiteLabelData whiteLabel;
 
 	UPROPERTY(BlueprintReadWrite)
@@ -501,6 +609,12 @@ struct FWeb3AuthOptions
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
         bool useCoreKitKey;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FMfaSettings mfaSettings;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        int32 sessionTime = 86400;
+
 	FWeb3AuthOptions() {};
 
 	void operator= (const FWeb3AuthOptions& other) {
@@ -508,10 +622,13 @@ struct FWeb3AuthOptions
 		redirectUrl = other.redirectUrl;
 		sdkUrl = other.sdkUrl;
 		network = other.network;
+		buildEnv = other.buildEnv;
 		whiteLabel = other.whiteLabel;
 		loginConfig = other.loginConfig;
 		chainNamespace = other.chainNamespace;
         useCoreKitKey = other.useCoreKitKey;
+        mfaSettings = other.mfaSettings;
+        sessionTime = other.sessionTime;
 	}
 
 };
@@ -536,7 +653,7 @@ struct FWeb3AuthResponse
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FUserInfo userInfo;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
         FString coreKitKey;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -648,4 +765,6 @@ private:
 
 	void authorizeSession();
 	void sessionTimeout();
+	void createSession(const FString& jsonData, int32 sessionTime);
+    void handleCreateSessionResponse(FString path, FString newSessionKey);
 };

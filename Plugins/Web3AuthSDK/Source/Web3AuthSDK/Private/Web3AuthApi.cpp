@@ -2,7 +2,6 @@
 
 
 #include "Web3AuthApi.h"
-#include "GenericPlatform/GenericPlatformHttp.h"
 
 UWeb3AuthApi* UWeb3AuthApi::Instance = nullptr;
 
@@ -49,6 +48,33 @@ void UWeb3AuthApi::AuthorizeSession(const FString& key, const TFunction<void(FSt
 }
 
 void UWeb3AuthApi::Logout(const FLogoutApiRequest logoutApiRequest, const TFunction<void(FString)> callback)
+{
+    TSharedRef<IHttpRequest> request = FHttpModule::Get().CreateRequest();
+    request->SetVerb(TEXT("POST"));
+    request->SetURL(TEXT("https://broadcast-server.tor.us/store/set"));
+
+    FString FormString = "key=" + logoutApiRequest.key + "&data=" + FGenericPlatformHttp::UrlEncode(logoutApiRequest.data) + "&signature=" + logoutApiRequest.signature + "&timeout=" + FString::FromInt(logoutApiRequest.timeout);
+
+    request->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
+    request->SetContentAsString(FormString);
+
+    request->OnProcessRequestComplete().BindLambda([callback](FHttpRequestPtr request, FHttpResponsePtr response, bool success) {
+        FString response_string = response->GetContentAsString();
+        UE_LOG(LogTemp, Log, TEXT("Response: %s "), *response_string);
+        UE_LOG(LogTemp, Log, TEXT("Status code: %d "), response->GetResponseCode());
+
+        if (success && response->GetResponseCode() == EHttpResponseCodes::Created) {
+            callback(response_string);
+        }
+        else {
+            UE_LOG(LogTemp, Error, TEXT("Request failed"));
+        }
+     });
+
+    request->ProcessRequest();
+}
+
+void UWeb3AuthApi::CreateSession(const FLogoutApiRequest logoutApiRequest, const TFunction<void(FString)> callback)
 {
     TSharedRef<IHttpRequest> request = FHttpModule::Get().CreateRequest();
     request->SetVerb(TEXT("POST"));

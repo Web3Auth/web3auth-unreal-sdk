@@ -77,3 +77,9 @@ DerivedDataCache/*
 # MAC
 **/*.DS_Store
 package/*
+
+# IntelliJ Specific Files
+.idea/*
+
+# VSCode Specific Files.
+.vscode/*
