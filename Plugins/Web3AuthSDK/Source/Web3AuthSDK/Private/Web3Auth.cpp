@@ -79,14 +79,14 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
             break;
 	}
 
-	/*FMfaSettings defaultMFA;
+	FMfaSettings defaultMFA;
 
 	if (!(web3AuthOptions.mfaSettings == defaultMFA))
     {
         FString mfaSettingsJson;
         FJsonObjectConverter::UStructToJsonObjectString(web3AuthOptions.mfaSettings, mfaSettingsJson);
         initParams->SetStringField(TEXT("mfaSettings"), mfaSettingsJson);
-    }*/
+    }
 
     if (web3AuthOptions.sessionTime > 0)
     {
@@ -115,7 +115,7 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 
 	if (web3AuthOptions.whiteLabel.appName != "") {
 		FString output;
-		this->GetJsonStringFromStruct(web3AuthOptions.whiteLabel, output);
+        FJsonObjectConverter::UStructToJsonObjectString(FWhiteLabelData::StaticStruct(), &web3AuthOptions.whiteLabel, output);
 
 		initParams->SetStringField("whiteLabel", output);
 	}
@@ -159,6 +159,25 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 		}
 	}
 
+    if(loginParams->dappShare != "") {
+        params->SetStringField("dappShare", loginParams->dappShare);
+    }
+
+    switch (loginParams->mfaLevel) {
+        case FMFALevel::DEFAULT:
+            params->SetStringField("mfaLevel", "default");
+            break;
+        case FMFALevel::OPTIONAL:
+            params->SetStringField("mfaLevel", "optional");
+            break;
+        case FMFALevel::MANDATORY:
+            params->SetStringField("mfaLevel", "mandatory");
+            break;
+        case FMFALevel::NONE:
+            params->SetStringField("mfaLevel", "none");
+            break;
+    }
+
 	#if !PLATFORM_ANDROID && !PLATFORM_IOS
     	params->SetStringField("redirectUrl", redirectUrl);
 	#endif
@@ -168,9 +187,6 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	FString json;
     TSharedRef< TJsonWriter<> > jsonWriter = TJsonWriterFactory<>::Create(&json);
 	FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
-
-	//const FString jsonOutput = json;
-	//FString base64 = FBase64::Encode(jsonOutput);
 
 	if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
         web3AuthOptions.sdkUrl = "https://staging-auth.web3auth.io/v6";
