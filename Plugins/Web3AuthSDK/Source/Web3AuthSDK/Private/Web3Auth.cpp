@@ -197,7 +197,7 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
         web3AuthOptions.sdkUrl = "https://auth.web3auth.io/v6";
     }
 
-    createSession(json, 600);
+    createSession(json, 86400);
 }
 
 void UWeb3Auth::processLogin(FLoginParams loginParams) {
@@ -221,7 +221,6 @@ void UWeb3Auth::setResultUrl(FString hash) {
     int32 equalsIndex;
     if (hash.FindChar('=', equalsIndex)) {
         FString newSessionId = hash.Mid(equalsIndex + 1);
-        UE_LOG(LogTemp, Warning, TEXT("newSessionId %s"), *newSessionId);
         this->sessionId = newSessionId;
     }
 
@@ -366,7 +365,6 @@ FString UWeb3Auth::getEd25519PrivKey() {
 FUserInfo UWeb3Auth::getUserInfo() {
 	if (web3AuthResponse.userInfo.IsEmpty()) {
 		FString error = Web3AuthError::getError(ErrorCode::NOUSERFOUND);
-		UE_LOG(LogTemp, Fatal, TEXT("%s"), *error);
 
 		return FUserInfo();
 	}
@@ -377,7 +375,6 @@ FUserInfo UWeb3Auth::getUserInfo() {
 void UWeb3Auth::authorizeSession() {
 	if (!this->sessionId.IsEmpty()) {
 		FString pubKey = crypto->generatePublicKey(this->sessionId);
-		UE_LOG(LogTemp, Log, TEXT("public key %s"), *pubKey);
 		FString session = this->sessionId;
 		web3AuthApi->AuthorizeSession(pubKey, [session, this](FStoreApiResponse response)
 			{
@@ -397,9 +394,6 @@ void UWeb3Auth::authorizeSession() {
 				TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(output);
 
 				if (FJsonSerializer::Deserialize(JsonReader, tempJson) && tempJson.IsValid()) {
-					/*tempJson->SetObjectField("userInfo", tempJson->GetObjectField("store"));
-					tempJson->RemoveField("store");*/
-
 					FString json;
 					TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&json);
 					FJsonSerializer::Serialize(tempJson.ToSharedRef(), Writer);
@@ -466,21 +460,13 @@ void UWeb3Auth::sessionTimeout() {
 
 void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
     FString newSessionKey = crypto->generateRandomSessionKey();
-    UE_LOG(LogTemp, Warning, TEXT("newSessionKey => %s"), *newSessionKey);
-
     FString ephemPublicKey = crypto->generatePublicKey(newSessionKey);
-    UE_LOG(LogTemp, Warning, TEXT("ephemPublicKey => %s"), *ephemPublicKey);
-
     FString ivKey = crypto->generateRandomBytes(16);
-    UE_LOG(LogTemp, Warning, TEXT("ivKey => %s"), *ivKey);
 
     UE_LOG(LogTemp, Warning, TEXT("jsonData => %s"), *jsonData);
 
 	FString macKeyHex = FString();
     FString encryptedData = crypto->encrypt(jsonData, newSessionKey, ephemPublicKey, ivKey, macKeyHex);
-    UE_LOG(LogTemp, Warning, TEXT("encryptedData => %s"), *encryptedData);
-
-	UE_LOG(LogTemp, Warning, TEXT("macKeyHex => %s"), *macKeyHex);
  
 	FString finalMac = crypto->getMac(encryptedData, ephemPublicKey, ivKey, macKeyHex);
 
@@ -490,16 +476,11 @@ void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
         FString errorMessage = TEXT("Bad MAC error during encryption");
     }
 
-	UE_LOG(LogTemp, Warning, TEXT("finalMac => %s"), *finalMac);
-
     FShareMetaData shareMetaData;
     shareMetaData.ciphertext = encryptedData;
     shareMetaData.ephemPublicKey = ephemPublicKey;
     shareMetaData.iv = ivKey;
     shareMetaData.mac = finalMac;
-
-    FString output = crypto->decrypt(shareMetaData.ciphertext, newSessionKey, shareMetaData.ephemPublicKey, shareMetaData.iv, shareMetaData.mac);
-    UE_LOG(LogTemp, Warning, TEXT("output %s"), *output);
 
     TSharedPtr<FJsonObject> jsonObject = MakeShareable(new FJsonObject);
     FJsonObjectConverter::UStructToJsonObject(FShareMetaData::StaticStruct(), &shareMetaData, jsonObject.ToSharedRef(), 0, 0);
@@ -507,8 +488,6 @@ void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
     FString jsonString;
     TSharedRef<TJsonWriter<TCHAR>> jsonWriter = TJsonWriterFactory<>::Create(&jsonString);
     FJsonSerializer::Serialize(jsonObject.ToSharedRef(), jsonWriter);
-
-    UE_LOG(LogTemp, Warning, TEXT("jsonString => %s"), *jsonString);
 
     FString sig = crypto->generateECDSASignature(newSessionKey, jsonString);
 

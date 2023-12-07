@@ -71,8 +71,6 @@ FString UECCrypto::decrypt(FString data, FString privateKeyHex, FString ephemPub
 		macHex += FString::Printf(TEXT("%02x"), mac_key[i]);
 	}
 
-    UE_LOG(LogTemp, Warning, TEXT("macHex during decrypt => %s"), *macHex);
-
     // Verify mac
 	if (!hmacSha256Verify(macHex, getCombinedData(data, ephemPublicKeyHex, encryptionIvHex), macKeyHex))
     {
@@ -157,7 +155,6 @@ FString UECCrypto::encrypt(FString data, FString privateKeyHex, FString ephemPub
 		mac_key += FString::Printf(TEXT("%02x"), mc[i]);
 	}
 
-    UE_LOG(LogTemp, Warning, TEXT("mac_key during encrypt => %s"), *mac_key);
 
 	// Create a new encryption context for AES-256 CBC mode with the key and IV
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
@@ -382,8 +379,6 @@ bool UECCrypto::hmacSha256Verify(FString key, FString data, FString expectedMac)
     }
 
     FString calculatedMac = hmacSha256Sign(key, data);
-	UE_LOG(LogTemp, Warning, TEXT("calculatedMac => %s"), *calculatedMac);
-    UE_LOG(LogTemp, Warning, TEXT("expectedMac => %s"), *expectedMac);
     return calculatedMac.Compare(expectedMac) == 0;
 
 }
