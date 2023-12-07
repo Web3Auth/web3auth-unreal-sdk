@@ -370,7 +370,7 @@ struct FLoginParams
 		FString redirectUrl;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FMFALevel mfaLevel;
+		FMFALevel mfaLevel = FMFALevel::OPTIONAL;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FCurve curve = FCurve::SECP256K1;
