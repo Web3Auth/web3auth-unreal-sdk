@@ -9,6 +9,7 @@
 #include "Misc/Base64.h"
 #include "ECCrypto.h"
 #include "Web3AuthApi.h"
+#include "KeyStoreUtils.h"
 
 #include "Runtime/Online/HTTPServer/Public/HttpPath.h"
 #include "Runtime/Online/HTTPServer/Public/IHttpRouter.h"
@@ -699,6 +700,7 @@ class WEB3AUTHSDK_API UWeb3Auth : public UGameInstanceSubsystem
 	FWeb3AuthOptions web3AuthOptions;
 	FOnLogin loginEvent;
 	FOnLogout logoutEvent;
+    UKeyStoreUtils* keyStoreUtils;
 
 protected:
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;

@@ -221,6 +221,7 @@ void UWeb3Auth::setResultUrl(FString hash) {
     int32 equalsIndex;
     if (hash.FindChar('=', equalsIndex)) {
         FString newSessionId = hash.Mid(equalsIndex + 1);
+        keyStoreUtils->Assign(newSessionId);
         this->sessionId = newSessionId;
     }
 
@@ -373,6 +374,7 @@ FUserInfo UWeb3Auth::getUserInfo() {
 }
 
 void UWeb3Auth::authorizeSession() {
+    this->sessionId = keyStoreUtils->Get();
 	if (!this->sessionId.IsEmpty()) {
 		FString pubKey = crypto->generatePublicKey(this->sessionId);
 		FString session = this->sessionId;
@@ -417,7 +419,7 @@ void UWeb3Auth::authorizeSession() {
 }
 
 void UWeb3Auth::sessionTimeout() {
-
+    this->sessionId = keyStoreUtils->Get();
 	if (!this->sessionId.IsEmpty()) {
 		FString pubKey = crypto->generatePublicKey(this->sessionId);
 		UE_LOG(LogTemp, Log, TEXT("public key %s"), *pubKey);
@@ -453,6 +455,7 @@ void UWeb3Auth::sessionTimeout() {
 						UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response);
 						this->logoutEvent.ExecuteIfBound();
 						this->sessionId = FString();
+                        keyStoreUtils->Clear();
 					});
 		});
 	}
@@ -538,6 +541,7 @@ void UWeb3Auth::handleCreateSessionResponse(FString path, FString newSessionKey)
 void UWeb3Auth::Initialize(FSubsystemCollectionBase& Collection) {
 	Super::Initialize(Collection);
 	this->crypto = NewObject<UECCrypto>();
+    this->keyStoreUtils = NewObject<UKeyStoreUtils>();
 }
 
 void UWeb3Auth::Deinitialize() {
@@ -550,5 +554,6 @@ void UWeb3Auth::Deinitialize() {
 	httpRoutes.Empty();
 	this->crypto = nullptr;
 	this->web3AuthApi = nullptr;
+    this->keyStoreUtils = nullptr;
 }
 
