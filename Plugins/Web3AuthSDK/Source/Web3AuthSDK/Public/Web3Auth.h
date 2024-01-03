@@ -592,6 +592,9 @@ struct FWeb3AuthOptions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString sdkUrl = "https://sdk.openlogin.com";
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FString walletSdkUrl = "https://wallet.web3auth.io";
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FNetwork network;
 
@@ -752,6 +755,7 @@ public:
     #endif
 private:
 	void request(FString  path, FLoginParams* loginParams, TSharedPtr<FJsonObject> extraParam);
+    void launchWalletServices(FString path, FLoginParams* loginParams, TSharedPtr<FJsonObject> extraParam);
 
 	template <typename StructType>
 	void GetJsonStringFromStruct(StructType FilledStruct, FString& StringOutput);
@@ -767,6 +771,6 @@ private:
 
 	void authorizeSession();
 	void sessionTimeout();
-	void createSession(const FString& jsonData, int32 sessionTime);
-    void handleCreateSessionResponse(FString path, FString newSessionKey);
+	void createSession(const FString& jsonData, int32 sessionTime, bool isWalletService);
+    void handleCreateSessionResponse(FString path, FString newSessionKey, bool isWalletService);
 };

@@ -197,7 +197,162 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
         web3AuthOptions.sdkUrl = "https://auth.web3auth.io/v6";
     }
 
-    createSession(json, 600);
+    createSession(json, 600, false);
+}
+
+void UWeb3Auth::launchWalletServices(FString  path, FLoginParams* loginParams = NULL, TSharedPtr<FJsonObject> extraParams = NULL) {
+    this->sessionId = keyStoreUtils->Get();
+    if (!this->sessionId.IsEmpty()) {
+        TSharedPtr <FJsonObject> paramMap = MakeShareable(new FJsonObject);
+
+
+        TSharedPtr <FJsonObject> initParams = MakeShareable(new FJsonObject);
+        initParams->SetStringField("clientId", web3AuthOptions.clientId);
+
+        switch (web3AuthOptions.network) {
+            case FNetwork::MAINNET:
+                initParams->SetStringField("network", "mainnet");
+                break;
+            case FNetwork::TESTNET:
+                initParams->SetStringField("network", "testnet");
+                break;
+            case FNetwork::CYAN:
+                initParams->SetStringField("network", "cyan");
+                break;
+            case FNetwork::AQUA:
+                initParams->SetStringField("network", "aqua");
+                break;
+            case FNetwork::SAPPHIRE_DEVNET:
+                initParams->SetStringField("network", "sapphire_devnet");
+                break;
+            case FNetwork::SAPPHIRE_MAINNET:
+                initParams->SetStringField("network", "sapphire_mainnet");
+                break;
+        }
+
+        FMfaSettings defaultMFA;
+
+        if (!(web3AuthOptions.mfaSettings == defaultMFA)) {
+            FString mfaSettingsJson;
+            FJsonObjectConverter::UStructToJsonObjectString(web3AuthOptions.mfaSettings,
+                                                            mfaSettingsJson);
+            initParams->SetStringField(TEXT("mfaSettings"), mfaSettingsJson);
+        }
+
+        if (web3AuthOptions.sessionTime > 0) {
+            initParams->SetNumberField(TEXT("sessionTime"), web3AuthOptions.sessionTime);
+        }
+
+#if !PLATFORM_ANDROID && !PLATFORM_IOS
+        FString redirectUrl = startLocalWebServer();
+        initParams->SetStringField("redirectUrl", redirectUrl);
+#else
+        if (web3AuthOptions.redirectUrl != "")
+            initParams->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
+#endif
+
+        switch (web3AuthOptions.buildEnv) {
+            case FBuildEnv::PRODUCTION:
+                initParams->SetStringField("buildEnv", "production");
+                break;
+            case FBuildEnv::TESTING:
+                initParams->SetStringField("buildEnv", "testing");
+                break;
+            case FBuildEnv::STAGING:
+                initParams->SetStringField("buildEnv", "staging");
+                break;
+        }
+
+        if (web3AuthOptions.whiteLabel.appName != "") {
+            FString output;
+            FJsonObjectConverter::UStructToJsonObjectString(FWhiteLabelData::StaticStruct(),
+                                                            &web3AuthOptions.whiteLabel, output);
+
+            initParams->SetStringField("whiteLabel", output);
+        }
+
+        if (!web3AuthOptions.loginConfig.IsEmpty()) {
+            FString output;
+
+            TSharedPtr <FJsonObject> loginConfigMap = MakeShareable(new FJsonObject);
+
+            for (auto item: web3AuthOptions.loginConfig) {
+                TSharedPtr <FJsonObject> loginConfigObject = MakeShareable(new FJsonObject);
+                FJsonObjectConverter::UStructToJsonObject(FLoginConfigItem::StaticStruct(),
+                                                          &item.Value,
+                                                          loginConfigObject.ToSharedRef(), 0, 0);
+
+                loginConfigMap->SetObjectField(item.Key, loginConfigObject);
+            }
+
+            TSharedRef <TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&output);
+            FJsonSerializer::Serialize(loginConfigMap.ToSharedRef(), Writer);
+
+            initParams->SetStringField("loginConfig", output);
+        }
+
+        paramMap->SetObjectField("options", initParams.ToSharedRef());
+        paramMap->SetStringField("actionType", "login");
+
+        TSharedPtr <FJsonObject> params = MakeShareable(new FJsonObject);
+
+        if (loginParams->curve == FCurve::SECP256K1)
+            params->SetStringField("curve", "secp256k1");
+        else {
+            params->SetStringField("curve", "ed25519");
+        }
+
+        if (extraParams != NULL) {
+            params = extraParams;
+        }
+
+        if (loginParams != NULL) {
+            for (auto o: loginParams->getJsonObject().Values) {
+                params->SetField(o.Key, o.Value);
+            }
+        }
+
+        if (loginParams->dappShare != "") {
+            params->SetStringField("dappShare", loginParams->dappShare);
+        }
+
+        switch (loginParams->mfaLevel) {
+            case FMFALevel::DEFAULT:
+                params->SetStringField("mfaLevel", "default");
+                break;
+            case FMFALevel::OPTIONAL:
+                params->SetStringField("mfaLevel", "optional");
+                break;
+            case FMFALevel::MANDATORY:
+                params->SetStringField("mfaLevel", "mandatory");
+                break;
+            case FMFALevel::NONE:
+                params->SetStringField("mfaLevel", "none");
+                break;
+        }
+
+#if !PLATFORM_ANDROID && !PLATFORM_IOS
+        params->SetStringField("redirectUrl", redirectUrl);
+#endif
+
+        paramMap->SetObjectField("params", params.ToSharedRef());
+
+        FString json;
+        TSharedRef <TJsonWriter<>> jsonWriter = TJsonWriterFactory<>::Create(&json);
+        FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
+
+        if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
+            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io";
+        } else if (web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
+            web3AuthOptions.walletSdkUrl = "https://develop-wallet.web3auth.io";
+        } else {
+            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io";
+        }
+
+        createSession(json, 600, true);
+    } else {
+        UE_LOG(LogTemp, Error, TEXT("SessionId not found. Please login first."));
+    }
 }
 
 void UWeb3Auth::processLogin(FLoginParams loginParams) {
@@ -461,7 +616,7 @@ void UWeb3Auth::sessionTimeout() {
 	}
 }
 
-void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
+void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime, bool isWalletService) {
     FString newSessionKey = crypto->generateRandomSessionKey();
     FString ephemPublicKey = crypto->generatePublicKey(newSessionKey);
     FString ivKey = crypto->generateRandomBytes(16);
@@ -503,13 +658,18 @@ void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime) {
     web3AuthApi->CreateSession(request, [this, newSessionKey](FString response)
     	{
     	    UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response);
-            handleCreateSessionResponse("start", newSessionKey);
+            handleCreateSessionResponse("start", newSessionKey, isWalletService);
     	});
 }
 
-void UWeb3Auth::handleCreateSessionResponse(FString path, FString newSessionKey) {
+void UWeb3Auth::handleCreateSessionResponse(FString path, FString newSessionKey, bool isWalletService) {
         TSharedPtr<FJsonObject> loginIdObject = MakeShareable(new FJsonObject);
         loginIdObject->SetStringField(TEXT("loginId"), newSessionKey);
+
+        if(isWalletService) {
+            this->sessionId = keyStoreUtils->Get();
+            loginIdObject->SetStringField(TEXT("sessionId"), this->sessionId);
+        }
 
         // Convert to Base64
         FString output;
@@ -518,7 +678,12 @@ void UWeb3Auth::handleCreateSessionResponse(FString path, FString newSessionKey)
         FString encode = FBase64::Encode(output);
 
         // Build the URI
-        FString url = web3AuthOptions.sdkUrl + "/" + path + "#" + "b64Params=" + encode;
+        FString url;
+        if(isWalletService) {
+            url = web3AuthOptions.walletSdkUrl + "/" + path + "#" + "b64Params=" + encode;
+        } else {
+            url = web3AuthOptions.sdkUrl + "/" + path + "#" + "b64Params=" + encode;
+        }
 
 #if PLATFORM_ANDROID
         thiz_instance = this;
