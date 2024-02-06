@@ -51,7 +51,7 @@ void UWeb3Auth::setOptions(FWeb3AuthOptions options) {
 	authorizeSession();
 }
 
-void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TSharedPtr<FJsonObject> extraParams = NULL) {
+void UWeb3Auth::request(FString path, FLoginParams* loginParams = NULL, TSharedPtr<FJsonObject> extraParams = NULL) {
 	TSharedPtr<FJsonObject> paramMap = MakeShareable(new FJsonObject);
 
 
@@ -120,6 +120,12 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 		initParams->SetStringField("whiteLabel", output);
 	}
 
+	if (web3AuthOptions.chainConfig.chainId != "") {
+        FString output;
+        FJsonObjectConverter::UStructToJsonObjectString(FChainConfig::StaticStruct(), &web3AuthOptions.chainConfig, output);
+        initParams->SetStringField("chainConfig", output);
+    }
+
 	if (!web3AuthOptions.loginConfig.IsEmpty()) {
 		FString output;
 
@@ -139,7 +145,11 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
 	}
 
 	paramMap->SetObjectField("options", initParams.ToSharedRef());
-	paramMap->SetStringField("actionType", "login");
+	paramMap->SetStringField("actionType", path);
+
+    if (path.Equals("enable_mfa")) {
+        paramMap->SetStringField("sessionId", this->sessionId);
+    }
 
 	TSharedPtr<FJsonObject> params = MakeShareable(new FJsonObject);
 
@@ -200,7 +210,7 @@ void UWeb3Auth::request(FString  path, FLoginParams* loginParams = NULL, TShared
     createSession(json, 600, false);
 }
 
-void UWeb3Auth::launchWalletServices(FString  path, FLoginParams* loginParams = NULL, TSharedPtr<FJsonObject> extraParams = NULL) {
+void UWeb3Auth::launchWalletServices(FLoginParams* loginParams = NULL, TSharedPtr<FJsonObject> extraParams = NULL) {
     this->sessionId = keyStoreUtils->Get();
     if (!this->sessionId.IsEmpty()) {
         TSharedPtr <FJsonObject> paramMap = MakeShareable(new FJsonObject);
@@ -269,6 +279,13 @@ void UWeb3Auth::launchWalletServices(FString  path, FLoginParams* loginParams = 
                                                             &web3AuthOptions.whiteLabel, output);
 
             initParams->SetStringField("whiteLabel", output);
+        }
+
+        if (web3AuthOptions.chainConfig.chainId != "") {
+             FString output;
+             FJsonObjectConverter::UStructToJsonObjectString(FChainConfig::StaticStruct(),
+                                                                    &web3AuthOptions.chainConfig, output);
+             initParams->SetStringField("chainConfig", output);
         }
 
         if (!web3AuthOptions.loginConfig.IsEmpty()) {
@@ -342,11 +359,11 @@ void UWeb3Auth::launchWalletServices(FString  path, FLoginParams* loginParams = 
         FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
 
         if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
-            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io";
+            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v1";
         } else if (web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
             web3AuthOptions.walletSdkUrl = "https://develop-wallet.web3auth.io";
         } else {
-            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io";
+            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v1";
         }
 
         createSession(json, 600, true);
@@ -357,11 +374,21 @@ void UWeb3Auth::launchWalletServices(FString  path, FLoginParams* loginParams = 
 
 void UWeb3Auth::processLogin(FLoginParams loginParams) {
 	UE_LOG(LogTemp, Warning, TEXT("login called"));
-	this->request("start", &loginParams);
+	this->request("login", &loginParams);
 }
 
 void UWeb3Auth::processLogout() {
-	sessionTimeout();
+    sessionTimeout();
+}
+
+void UWeb3Auth::setUpMFA(FLoginParams loginParams) {
+    UE_LOG(LogTemp, Warning, TEXT("setupMFA called"));
+    this->sessionId = keyStoreUtils->Get();
+    if (!this->sessionId.IsEmpty()) {
+        this->request("enable_mfa", &loginParams);
+    } else {
+        UE_LOG(LogTemp, Error, TEXT("SessionId not found. Please login first."));
+    }
 }
 
 void UWeb3Auth::setResultUrl(FString hash) {
@@ -494,6 +521,10 @@ void UWeb3Auth::setLogoutEvent(FOnLogout _event) {
 	logoutEvent = _event;
 }
 
+void UWeb3Auth::setMfaEvent(FOnMfaSetup _event) {
+    setMfaEvent = _event;
+}
+
 #if PLATFORM_IOS
 void UWeb3Auth::callBackFromWebAuthenticateIOS(NSString* sResult) {
     FString result = FString(sResult);
@@ -565,6 +596,7 @@ void UWeb3Auth::authorizeSession() {
 					}
 
 					this->loginEvent.ExecuteIfBound(web3AuthResponse);
+                    this->setMfaEvent.ExecuteIfBound(true);
 				}
 
 		});
@@ -577,7 +609,7 @@ void UWeb3Auth::sessionTimeout() {
     this->sessionId = keyStoreUtils->Get();
 	if (!this->sessionId.IsEmpty()) {
 		FString pubKey = crypto->generatePublicKey(this->sessionId);
-		UE_LOG(LogTemp, Log, TEXT("public key %s"), *pubKey);
+
 		web3AuthApi->AuthorizeSession(pubKey, [pubKey, this](FStoreApiResponse response)
 			{
 				FShareMetaData shareMetaData;
@@ -620,8 +652,6 @@ void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime, bool i
     FString newSessionKey = crypto->generateRandomSessionKey();
     FString ephemPublicKey = crypto->generatePublicKey(newSessionKey);
     FString ivKey = crypto->generateRandomBytes(16);
-
-    UE_LOG(LogTemp, Warning, TEXT("jsonData => %s"), *jsonData);
 
 	FString macKeyHex = FString();
     FString encryptedData = crypto->encrypt(jsonData, newSessionKey, ephemPublicKey, ivKey, macKeyHex);

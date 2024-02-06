@@ -505,6 +505,53 @@ struct FWhiteLabelData
 };
 
 USTRUCT(BlueprintType)
+struct FChainConfig
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FChainNamespace chainNamespace = FChainNamespace::EIP155;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    int32 decimals = 18;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString blockExplorerUrl;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString chainId;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString displayName;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString logo;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString rpcTarget;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString ticker;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString tickerName;
+
+    FChainConfig() {};
+
+    void operator= (const FChainConfig& other) {
+        chainNamespace = other.chainNamespace;
+        decimals = other.decimals;
+        blockExplorerUrl = other.blockExplorerUrl;
+        chainId = other.chainId;
+        displayName = other.displayName;
+        logo = other.logo;
+        rpcTarget = other.rpcTarget;
+        ticker = other.ticker;
+        tickerName = other.tickerName;
+    }
+};
+
+USTRUCT(BlueprintType)
 struct FMfaSetting
 {
 	GENERATED_BODY()
@@ -688,6 +735,7 @@ public:
 
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnLogin, FWeb3AuthResponse, response);
 DECLARE_DYNAMIC_DELEGATE(FOnLogout);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FOnMfaSetup, bool, response);
 
 UCLASS()
 class WEB3AUTHSDK_API UWeb3Auth : public UGameInstanceSubsystem
@@ -703,6 +751,7 @@ class WEB3AUTHSDK_API UWeb3Auth : public UGameInstanceSubsystem
 	FWeb3AuthOptions web3AuthOptions;
 	FOnLogin loginEvent;
 	FOnLogout logoutEvent;
+    FOnMfaSetup mfaSetUpEvent;
     UKeyStoreUtils* keyStoreUtils;
 
 protected:
@@ -724,6 +773,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void processLogout();
 
+    UFUNCTION(BlueprintCallable)
+        void setUpMFA(FLoginParams loginParams);
+
+    UFUNCTION(BlueprintCallable)
+        void launchWalletServices(FLoginParams loginParams, TSharedPtr<FJsonObject> extraParam);
+
 	UFUNCTION(BlueprintCallable)
 		void setResultUrl(FString code);
 
@@ -732,6 +787,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Web3Auth")
 		void setLogoutEvent(FOnLogout _event);
+
+    UFUNCTION(BlueprintCallable, Category = "Web3Auth")
+        void setMfaEvent(FOnMfaSetup _event);
 
 	UFUNCTION(BlueprintCallable)
 		FString Web3AuthResponseToJsonString(FWeb3AuthResponse response) {
@@ -755,7 +813,6 @@ public:
     #endif
 private:
 	void request(FString  path, FLoginParams* loginParams, TSharedPtr<FJsonObject> extraParam);
-    void launchWalletServices(FString path, FLoginParams* loginParams, TSharedPtr<FJsonObject> extraParam);
 
 	template <typename StructType>
 	void GetJsonStringFromStruct(StructType FilledStruct, FString& StringOutput);
