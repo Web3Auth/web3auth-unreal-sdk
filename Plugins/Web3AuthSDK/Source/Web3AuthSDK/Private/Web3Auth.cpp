@@ -210,11 +210,10 @@ void UWeb3Auth::request(FString path, FLoginParams* loginParams = NULL, TSharedP
     createSession(json, 600, false);
 }
 
-void UWeb3Auth::launchWalletServices(FLoginParams* loginParams = NULL, TSharedPtr<FJsonObject> extraParams = NULL) {
+void UWeb3Auth::launchWalletServices(FLoginParams loginParams) {
     this->sessionId = keyStoreUtils->Get();
     if (!this->sessionId.IsEmpty()) {
         TSharedPtr <FJsonObject> paramMap = MakeShareable(new FJsonObject);
-
 
         TSharedPtr <FJsonObject> initParams = MakeShareable(new FJsonObject);
         initParams->SetStringField("clientId", web3AuthOptions.clientId);
@@ -313,27 +312,23 @@ void UWeb3Auth::launchWalletServices(FLoginParams* loginParams = NULL, TSharedPt
 
         TSharedPtr <FJsonObject> params = MakeShareable(new FJsonObject);
 
-        if (loginParams->curve == FCurve::SECP256K1)
+        if (loginParams.curve == FCurve::SECP256K1)
             params->SetStringField("curve", "secp256k1");
         else {
             params->SetStringField("curve", "ed25519");
         }
 
-        if (extraParams != NULL) {
-            params = extraParams;
-        }
-
-        if (loginParams != NULL) {
+        /*if (loginParams != NULL) {
             for (auto o: loginParams->getJsonObject().Values) {
                 params->SetField(o.Key, o.Value);
             }
+        }*/
+
+        if (loginParams.dappShare != "") {
+            params->SetStringField("dappShare", loginParams.dappShare);
         }
 
-        if (loginParams->dappShare != "") {
-            params->SetStringField("dappShare", loginParams->dappShare);
-        }
-
-        switch (loginParams->mfaLevel) {
+        switch (loginParams.mfaLevel) {
             case FMFALevel::DEFAULT:
                 params->SetStringField("mfaLevel", "default");
                 break;
@@ -522,7 +517,7 @@ void UWeb3Auth::setLogoutEvent(FOnLogout _event) {
 }
 
 void UWeb3Auth::setMfaEvent(FOnMfaSetup _event) {
-    setMfaEvent = _event;
+    mfaEvent = _event;
 }
 
 #if PLATFORM_IOS
@@ -596,7 +591,7 @@ void UWeb3Auth::authorizeSession() {
 					}
 
 					this->loginEvent.ExecuteIfBound(web3AuthResponse);
-                    this->setMfaEvent.ExecuteIfBound(true);
+                    this->mfaEvent.ExecuteIfBound(true);
 				}
 
 		});
@@ -685,7 +680,7 @@ void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime, bool i
     request.signature = sig;
     request.timeout = FMath::Min(sessionTime, 7 * 86400);
 
-    web3AuthApi->CreateSession(request, [this, newSessionKey](FString response)
+    web3AuthApi->CreateSession(request, [this, newSessionKey, isWalletService](FString response)
     	{
     	    UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response);
             handleCreateSessionResponse("start", newSessionKey, isWalletService);

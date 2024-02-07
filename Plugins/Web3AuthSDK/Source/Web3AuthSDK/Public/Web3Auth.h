@@ -666,6 +666,9 @@ struct FWeb3AuthOptions
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
         int32 sessionTime = 86400;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FChainConfig chainConfig;
+
 	FWeb3AuthOptions() {};
 
 	void operator= (const FWeb3AuthOptions& other) {
@@ -680,6 +683,7 @@ struct FWeb3AuthOptions
         useCoreKitKey = other.useCoreKitKey;
         mfaSettings = other.mfaSettings;
         sessionTime = other.sessionTime;
+        chainConfig = other.chainConfig;
 	}
 
 };
@@ -751,7 +755,7 @@ class WEB3AUTHSDK_API UWeb3Auth : public UGameInstanceSubsystem
 	FWeb3AuthOptions web3AuthOptions;
 	FOnLogin loginEvent;
 	FOnLogout logoutEvent;
-    FOnMfaSetup mfaSetUpEvent;
+    FOnMfaSetup mfaEvent;
     UKeyStoreUtils* keyStoreUtils;
 
 protected:
@@ -777,7 +781,7 @@ public:
         void setUpMFA(FLoginParams loginParams);
 
     UFUNCTION(BlueprintCallable)
-        void launchWalletServices(FLoginParams loginParams, TSharedPtr<FJsonObject> extraParam);
+        void launchWalletServices(FLoginParams loginParams);
 
 	UFUNCTION(BlueprintCallable)
 		void setResultUrl(FString code);
