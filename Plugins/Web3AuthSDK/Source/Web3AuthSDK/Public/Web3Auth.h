@@ -11,6 +11,10 @@
 #include "Web3AuthApi.h"
 #include "KeyStoreUtils.h"
 
+#include "Containers/UnrealString.h"
+#include "Serialization/JsonSerializer.h"
+#include "Serialization/JsonReader.h"
+
 #include "Runtime/Online/HTTPServer/Public/HttpPath.h"
 #include "Runtime/Online/HTTPServer/Public/IHttpRouter.h"
 #include "Runtime/Online/HTTPServer/Public/HttpServerHttpVersion.h"
@@ -106,7 +110,7 @@ enum class FMFALevel : uint8
 UENUM(BlueprintType)
 enum class FLanguage : uint8
 {
-	en, de, ja, ko, zh, es, fr, pt, nl
+	en, de, ja, ko, zh, es, fr, pt, nl, tr
 };
 
 UENUM(BlueprintType)
@@ -376,6 +380,9 @@ struct FLoginParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FCurve curve = FCurve::SECP256K1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FString dappUrl;
+
 	FLoginParams() {};
 
 	FJsonObject getJsonObject() {
@@ -395,6 +402,9 @@ struct FLoginParams
 
 		if (extraLoginOptions.getJsonObject() != nullptr)
 			output.SetObjectField("extraLoginOptions", extraLoginOptions.getJsonObject());
+
+		if(!dappUrl.IsEmpty())
+            output.SetStringField("dappUrl", dappUrl);
 
 		return output;
 	}
@@ -602,6 +612,12 @@ struct FMfaSettings
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
         FMfaSetting passwordFactor;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FMfaSetting passkeysFactor;
+
+   UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FMfaSetting authenticatorFactor;
+
 	FMfaSettings() {};
 
 	void operator= (const FMfaSettings& other) {
@@ -609,6 +625,8 @@ struct FMfaSettings
 		backUpShareFactor = other.backUpShareFactor;
 		socialBackupFactor = other.socialBackupFactor;
 		passwordFactor = other.passwordFactor;
+		passkeysFactor = other.passkeysFactor;
+		authenticatorFactor = other.authenticatorFactor;
 	}
 
 	bool operator==(const FMfaSettings& other) const
@@ -616,7 +634,9 @@ struct FMfaSettings
     if (deviceShareFactor == other.deviceShareFactor &&
 	    backUpShareFactor == other.backUpShareFactor  &&
 	    socialBackupFactor == other.socialBackupFactor &&
-	    passwordFactor == other.passwordFactor) 
+	    passwordFactor == other.passwordFactor &&
+	    passkeysFactor == other.passkeysFactor &&
+	    authenticatorFactor == other.authenticatorFactor)
 		{
 			return true;
 		}
@@ -637,10 +657,10 @@ struct FWeb3AuthOptions
 		FString redirectUrl;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString sdkUrl = "https://sdk.openlogin.com";
+		FString sdkUrl = "https://sdk.openlogin.com/v7";
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-        FString walletSdkUrl = "https://wallet.web3auth.io";
+        FString walletSdkUrl = "https://wallet.web3auth.io/v1";
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FNetwork network;
@@ -675,6 +695,7 @@ struct FWeb3AuthOptions
 		clientId = other.clientId;
 		redirectUrl = other.redirectUrl;
 		sdkUrl = other.sdkUrl;
+		redirectUrl = other.redirectUrl;
 		network = other.network;
 		buildEnv = other.buildEnv;
 		whiteLabel = other.whiteLabel;
@@ -777,11 +798,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void processLogout();
 
-    UFUNCTION(BlueprintCallable)
-        void setUpMFA(FLoginParams loginParams);
+   UFUNCTION(BlueprintCallable)
+        void enableMFA(FLoginParams loginParams);
 
     UFUNCTION(BlueprintCallable)
-        void launchWalletServices(FLoginParams loginParams);
+        void launchWalletServices(FLoginParams loginParams, FChainConfig chainConfig);
 
 	UFUNCTION(BlueprintCallable)
 		void setResultUrl(FString code);

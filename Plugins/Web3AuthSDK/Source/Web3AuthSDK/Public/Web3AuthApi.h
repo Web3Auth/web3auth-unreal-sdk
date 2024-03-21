@@ -36,6 +36,15 @@ struct FLogoutApiRequest
         int32 timeout;
 };
 
+USTRUCT()
+struct FSessionResponse
+{
+    GENERATED_BODY()
+
+    UPROPERTY()
+    FString sessionId;
+};
+
 UCLASS()
 class WEB3AUTHSDK_API UWeb3AuthApi : public UObject
 {
