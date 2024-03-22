@@ -393,7 +393,7 @@ void UWeb3Auth::setResultUrl(FString hash) {
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("respose base64 %s"), *hash);
+	//UE_LOG(LogTemp, Warning, TEXT("respose base64 %s"), *hash);
 
 	TArray<uint8> decodedBytes;
     FBase64::Decode(hash, decodedBytes);
@@ -402,7 +402,7 @@ void UWeb3Auth::setResultUrl(FString hash) {
     FString decodedString = FString(UTF8_TO_TCHAR(decodedBytes.GetData()));
     int32 braceIndex = decodedString.Find(TEXT("}"));
     FString substringBeforeBrace = decodedString.Left(braceIndex + 1);
-    UE_LOG(LogTemp, Warning, TEXT("substringBeforeBrace: %s"), *substringBeforeBrace);
+    //UE_LOG(LogTemp, Warning, TEXT("substringBeforeBrace: %s"), *substringBeforeBrace);
 
     FSessionResponse response;
     TSharedPtr<FJsonObject> jsonObject;
@@ -457,7 +457,7 @@ FString UWeb3Auth::startLocalWebServer() {
 
 bool UWeb3Auth::requestAuthCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) {
 	FString code = Request.QueryParams["b64Params"];
-    UE_LOG(LogTemp, Warning, TEXT("code %s"), *code);
+    //UE_LOG(LogTemp, Warning, TEXT("code %s"), *code);
 	if (!code.IsEmpty()) {
 		setResultUrl(code);
 	}
@@ -574,7 +574,7 @@ void UWeb3Auth::authorizeSession() {
 		FString session = this->sessionId;
 		web3AuthApi->AuthorizeSession(pubKey, [session, this](FStoreApiResponse response)
 			{
-				UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response.message);
+				//UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response.message);
 
 				FShareMetaData shareMetaData;
 
@@ -584,7 +584,7 @@ void UWeb3Auth::authorizeSession() {
 				}
 
 				FString output = crypto->decrypt(shareMetaData.ciphertext, session, shareMetaData.ephemPublicKey, shareMetaData.iv, shareMetaData.mac);
-				UE_LOG(LogTemp, Log, TEXT("output %s"), *output);
+				//UE_LOG(LogTemp, Log, TEXT("output %s"), *output);
 		
 				TSharedPtr<FJsonObject> tempJson;
 				TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(output);
@@ -657,7 +657,7 @@ void UWeb3Auth::sessionTimeout() {
 }
 
 void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime, bool isWalletService) {
-    UE_LOG(LogTemp, Log, TEXT("CreateSessionJson: %s"), *jsonData);
+    //UE_LOG(LogTemp, Log, TEXT("CreateSessionJson: %s"), *jsonData);
     FString newSessionKey = crypto->generateRandomSessionKey();
     FString ephemPublicKey = crypto->generatePublicKey(newSessionKey);
     FString ivKey = crypto->generateRandomBytes(16);
