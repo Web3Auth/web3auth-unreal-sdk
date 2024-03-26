@@ -18,7 +18,7 @@ void UWeb3AuthApi::AuthorizeSession(const FString& key, const TFunction<void(FSt
 {
     TSharedRef<IHttpRequest> request = FHttpModule::Get().CreateRequest();
     request->SetVerb(TEXT("POST"));
-    request->SetURL(TEXT("https://broadcast-server.tor.us/store/get?key=" + key));
+    request->SetURL(TEXT("https://session.web3auth.io/store/get?key=" + key));
     
     FString FormString = "key=" + key;
 
@@ -51,7 +51,7 @@ void UWeb3AuthApi::Logout(const FLogoutApiRequest logoutApiRequest, const TFunct
 {
     TSharedRef<IHttpRequest> request = FHttpModule::Get().CreateRequest();
     request->SetVerb(TEXT("POST"));
-    request->SetURL(TEXT("https://broadcast-server.tor.us/store/set"));
+    request->SetURL(TEXT("https://session.web3auth.io/store/set"));
 
     FString FormString = "key=" + logoutApiRequest.key + "&data=" + FGenericPlatformHttp::UrlEncode(logoutApiRequest.data) + "&signature=" + logoutApiRequest.signature + "&timeout=" + FString::FromInt(logoutApiRequest.timeout);
 
@@ -78,7 +78,7 @@ void UWeb3AuthApi::CreateSession(const FLogoutApiRequest logoutApiRequest, const
 {
     TSharedRef<IHttpRequest> request = FHttpModule::Get().CreateRequest();
     request->SetVerb(TEXT("POST"));
-    request->SetURL(TEXT("https://broadcast-server.tor.us/store/set"));
+    request->SetURL(TEXT("https://session.web3auth.io/store/set"));
 
     FString FormString = "key=" + logoutApiRequest.key + "&data=" + FGenericPlatformHttp::UrlEncode(logoutApiRequest.data) + "&signature=" + logoutApiRequest.signature + "&timeout=" + FString::FromInt(logoutApiRequest.timeout);
 

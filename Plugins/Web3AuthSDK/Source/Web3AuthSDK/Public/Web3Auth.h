@@ -657,7 +657,7 @@ struct FWeb3AuthOptions
 		FString redirectUrl;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString sdkUrl = "https://sdk.openlogin.com/v7";
+		FString sdkUrl = "https://sdk.openlogin.com/v8";
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
         FString walletSdkUrl = "https://wallet.web3auth.io/v1";
