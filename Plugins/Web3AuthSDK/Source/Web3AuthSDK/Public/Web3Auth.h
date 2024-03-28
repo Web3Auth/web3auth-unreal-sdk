@@ -11,6 +11,10 @@
 #include "Web3AuthApi.h"
 #include "KeyStoreUtils.h"
 
+#include "Containers/UnrealString.h"
+#include "Serialization/JsonSerializer.h"
+#include "Serialization/JsonReader.h"
+
 #include "Runtime/Online/HTTPServer/Public/HttpPath.h"
 #include "Runtime/Online/HTTPServer/Public/IHttpRouter.h"
 #include "Runtime/Online/HTTPServer/Public/HttpServerHttpVersion.h"
@@ -106,7 +110,7 @@ enum class FMFALevel : uint8
 UENUM(BlueprintType)
 enum class FLanguage : uint8
 {
-	en, de, ja, ko, zh, es, fr, pt, nl
+	en, de, ja, ko, zh, es, fr, pt, nl, tr
 };
 
 UENUM(BlueprintType)
@@ -376,6 +380,9 @@ struct FLoginParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FCurve curve = FCurve::SECP256K1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FString dappUrl;
+
 	FLoginParams() {};
 
 	FJsonObject getJsonObject() {
@@ -395,6 +402,9 @@ struct FLoginParams
 
 		if (extraLoginOptions.getJsonObject() != nullptr)
 			output.SetObjectField("extraLoginOptions", extraLoginOptions.getJsonObject());
+
+		if(!dappUrl.IsEmpty())
+            output.SetStringField("dappUrl", dappUrl);
 
 		return output;
 	}
@@ -505,6 +515,53 @@ struct FWhiteLabelData
 };
 
 USTRUCT(BlueprintType)
+struct FChainConfig
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FChainNamespace chainNamespace = FChainNamespace::EIP155;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    int32 decimals = 18;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString blockExplorerUrl;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString chainId;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString displayName;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString logo;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString rpcTarget;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString ticker;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString tickerName;
+
+    FChainConfig() {};
+
+    void operator= (const FChainConfig& other) {
+        chainNamespace = other.chainNamespace;
+        decimals = other.decimals;
+        blockExplorerUrl = other.blockExplorerUrl;
+        chainId = other.chainId;
+        displayName = other.displayName;
+        logo = other.logo;
+        rpcTarget = other.rpcTarget;
+        ticker = other.ticker;
+        tickerName = other.tickerName;
+    }
+};
+
+USTRUCT(BlueprintType)
 struct FMfaSetting
 {
 	GENERATED_BODY()
@@ -555,6 +612,12 @@ struct FMfaSettings
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
         FMfaSetting passwordFactor;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FMfaSetting passkeysFactor;
+
+   UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FMfaSetting authenticatorFactor;
+
 	FMfaSettings() {};
 
 	void operator= (const FMfaSettings& other) {
@@ -562,6 +625,8 @@ struct FMfaSettings
 		backUpShareFactor = other.backUpShareFactor;
 		socialBackupFactor = other.socialBackupFactor;
 		passwordFactor = other.passwordFactor;
+		passkeysFactor = other.passkeysFactor;
+		authenticatorFactor = other.authenticatorFactor;
 	}
 
 	bool operator==(const FMfaSettings& other) const
@@ -569,7 +634,9 @@ struct FMfaSettings
     if (deviceShareFactor == other.deviceShareFactor &&
 	    backUpShareFactor == other.backUpShareFactor  &&
 	    socialBackupFactor == other.socialBackupFactor &&
-	    passwordFactor == other.passwordFactor) 
+	    passwordFactor == other.passwordFactor &&
+	    passkeysFactor == other.passkeysFactor &&
+	    authenticatorFactor == other.authenticatorFactor)
 		{
 			return true;
 		}
@@ -590,7 +657,10 @@ struct FWeb3AuthOptions
 		FString redirectUrl;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString sdkUrl = "https://sdk.openlogin.com";
+		FString sdkUrl = "https://sdk.openlogin.com/v8";
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FString walletSdkUrl = "https://wallet.web3auth.io/v1";
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FNetwork network;
@@ -616,12 +686,16 @@ struct FWeb3AuthOptions
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
         int32 sessionTime = 86400;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FChainConfig chainConfig;
+
 	FWeb3AuthOptions() {};
 
 	void operator= (const FWeb3AuthOptions& other) {
 		clientId = other.clientId;
 		redirectUrl = other.redirectUrl;
 		sdkUrl = other.sdkUrl;
+		redirectUrl = other.redirectUrl;
 		network = other.network;
 		buildEnv = other.buildEnv;
 		whiteLabel = other.whiteLabel;
@@ -630,6 +704,7 @@ struct FWeb3AuthOptions
         useCoreKitKey = other.useCoreKitKey;
         mfaSettings = other.mfaSettings;
         sessionTime = other.sessionTime;
+        chainConfig = other.chainConfig;
 	}
 
 };
@@ -685,6 +760,7 @@ public:
 
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnLogin, FWeb3AuthResponse, response);
 DECLARE_DYNAMIC_DELEGATE(FOnLogout);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FOnMfaSetup, bool, response);
 
 UCLASS()
 class WEB3AUTHSDK_API UWeb3Auth : public UGameInstanceSubsystem
@@ -700,6 +776,7 @@ class WEB3AUTHSDK_API UWeb3Auth : public UGameInstanceSubsystem
 	FWeb3AuthOptions web3AuthOptions;
 	FOnLogin loginEvent;
 	FOnLogout logoutEvent;
+    FOnMfaSetup mfaEvent;
     UKeyStoreUtils* keyStoreUtils;
 
 protected:
@@ -721,6 +798,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void processLogout();
 
+   UFUNCTION(BlueprintCallable)
+        void enableMFA(FLoginParams loginParams);
+
+    UFUNCTION(BlueprintCallable)
+        void launchWalletServices(FLoginParams loginParams, FChainConfig chainConfig);
+
 	UFUNCTION(BlueprintCallable)
 		void setResultUrl(FString code);
 
@@ -729,6 +812,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Web3Auth")
 		void setLogoutEvent(FOnLogout _event);
+
+    UFUNCTION(BlueprintCallable, Category = "Web3Auth")
+        void setMfaEvent(FOnMfaSetup _event);
 
 	UFUNCTION(BlueprintCallable)
 		FString Web3AuthResponseToJsonString(FWeb3AuthResponse response) {
@@ -767,6 +853,6 @@ private:
 
 	void authorizeSession();
 	void sessionTimeout();
-	void createSession(const FString& jsonData, int32 sessionTime);
-    void handleCreateSessionResponse(FString path, FString newSessionKey);
+	void createSession(const FString& jsonData, int32 sessionTime, bool isWalletService);
+    void handleCreateSessionResponse(FString path, FString newSessionKey, bool isWalletService);
 };
