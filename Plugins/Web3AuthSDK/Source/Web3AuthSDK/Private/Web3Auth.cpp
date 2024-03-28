@@ -197,12 +197,12 @@ void UWeb3Auth::request(FString path, FLoginParams* loginParams = NULL, TSharedP
 	FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
 
 	if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
-        web3AuthOptions.sdkUrl = "https://staging-auth.web3auth.io/v6";
+        web3AuthOptions.sdkUrl = "https://staging-auth.web3auth.io/v8";
     }
     else if(web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
         web3AuthOptions.sdkUrl = "https://develop-auth.web3auth.io";
     } else {
-        web3AuthOptions.sdkUrl = "https://auth.web3auth.io/v6";
+        web3AuthOptions.sdkUrl = "https://auth.web3auth.io/v8";
     }
 
     if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
