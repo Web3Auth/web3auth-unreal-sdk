@@ -164,6 +164,9 @@ struct WEB3AUTHSDK_API FExtraLoginOptions
 		FString ui_locales;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FString id_token;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString id_token_hint;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -224,6 +227,9 @@ struct WEB3AUTHSDK_API FExtraLoginOptions
 
 		if (!ui_locales.IsEmpty())
 			output->SetStringField("ui_locales", ui_locales);
+
+		if (!id_token.IsEmpty())
+        	output->SetStringField("id_token", id_token);
 
 		if (!id_token_hint.IsEmpty())
 			output->SetStringField("id_token_hint", id_token_hint);
