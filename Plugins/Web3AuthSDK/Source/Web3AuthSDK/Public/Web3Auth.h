@@ -67,7 +67,9 @@ enum class FProvider : uint8
 	WECHAT,
 	EMAIL_PASSWORDLESS,
 	EMAIL_PASSWORD,
-	JWT
+	JWT,
+	SMS_PASSWORDLESS,
+	FARCASTER
 };
 
 UENUM(BlueprintType)
@@ -88,7 +90,9 @@ enum class FTypeOfLogin : uint8
 	WECHAT,
 	EMAIL_PASSWORDLESS,
 	EMAIL_PASSWORD,
-	JWT
+	JWT,
+	SMS_PASSWORDLESS,
+	FARCASTER
 };
 
 UENUM(BlueprintType)
