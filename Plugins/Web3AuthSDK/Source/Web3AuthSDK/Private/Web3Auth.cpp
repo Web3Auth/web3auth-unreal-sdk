@@ -458,7 +458,7 @@ FString UWeb3Auth::startLocalWebServer() {
 bool UWeb3Auth::requestAuthCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) {
 	FString code = Request.QueryParams["code"];
 	code.RemoveFromStart(TEXT("b64params="));
-    UE_LOG(LogTemp, Warning, TEXT("code %s"), *code);
+    //UE_LOG(LogTemp, Warning, TEXT("code %s"), *code);
 	if (!code.IsEmpty()) {
 		setResultUrl(code);
 	}
