@@ -812,7 +812,7 @@ public:
         void enableMFA(FLoginParams loginParams);
 
     UFUNCTION(BlueprintCallable)
-        void launchWalletServices(FLoginParams loginParams, FChainConfig chainConfig);
+        void launchWalletServices(FChainConfig chainConfig);
 
 	UFUNCTION(BlueprintCallable)
 		void setResultUrl(FString code);
