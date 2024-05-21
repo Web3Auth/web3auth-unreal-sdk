@@ -6,6 +6,31 @@
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "Web3AuthApi.generated.h"
 
+UENUM(BlueprintType)
+enum class FLanguage : uint8
+{
+	en, de, ja, ko, zh, es, fr, pt, nl, tr
+};
+
+UENUM(BlueprintType)
+enum class FThemeModes : uint8
+{
+	light, dark
+};
+
+
+USTRUCT()
+struct FWhitelistResponse
+{
+    GENERATED_BODY()
+
+    UPROPERTY()
+    TArray<FString> urls;
+
+    UPROPERTY()
+    TMap<FString, FString> signed_urls;
+};
+
 USTRUCT(BlueprintType)
 struct FWhiteLabelData
 {
@@ -51,6 +76,27 @@ struct FWhiteLabelData
 };
 
 USTRUCT()
+struct FProjectConfigResponse
+{
+    GENERATED_BODY()
+
+    UPROPERTY()
+    FWhiteLabelData whiteLabelData;
+
+    UPROPERTY()
+    bool sms_otp_enabled;
+
+    UPROPERTY()
+    bool wallet_connect_enabled;
+
+    UPROPERTY()
+    FString wallet_connect_project_id;
+
+    UPROPERTY()
+    FWhitelistResponse whitelist;
+};
+
+USTRUCT()
 struct FStoreApiResponse
 {
     GENERATED_BODY()
@@ -87,39 +133,6 @@ struct FSessionResponse
 
     UPROPERTY()
     FString sessionId;
-};
-
-USTRUCT()
-struct FWhitelistResponse
-{
-    GENERATED_BODY()
-
-    UPROPERTY()
-    TArray<FString> urls;
-
-    UPROPERTY()
-    TMap<FString, FString> signed_urls;
-};
-
-USTRUCT()
-struct FProjectConfigResponse
-{
-    GENERATED_BODY()
-
-    UPROPERTY()
-    FWhiteLabelData whiteLabelData;
-
-    UPROPERTY()
-    bool sms_otp_enabled;
-
-    UPROPERTY()
-    bool wallet_connect_enabled;
-
-    UPROPERTY()
-    FString wallet_connect_project_id;
-
-    UPROPERTY()
-    FWhitelistResponse whitelist;
 };
 
 UCLASS()

@@ -21,14 +21,13 @@
 #include "Runtime/Online/HTTPServer/Public/HttpServerModule.h"
 #include "Runtime/Online/HTTPServer/Public/HttpServerResponse.h"
 
+#include "Web3AuthError.h"
+#include "Web3Auth.generated.h"
 
 #if PLATFORM_ANDROID
 #include "../../../Launch/Public/Android/AndroidJNI.h"
 #include "Android/AndroidApplication.h"
 #endif
-
-#include "Web3AuthError.h"
-#include "Web3Auth.generated.h"
 
 
 UENUM(BlueprintType)
@@ -109,18 +108,6 @@ enum class FMFALevel : uint8
 	OPTIONAL,
 	MANDATORY,
 	NONE
-};
-
-UENUM(BlueprintType)
-enum class FLanguage : uint8
-{
-	en, de, ja, ko, zh, es, fr, pt, nl, tr
-};
-
-UENUM(BlueprintType)
-enum class FThemeModes : uint8
-{
-	light, dark
 };
 
 UENUM(BlueprintType)

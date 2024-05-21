@@ -669,7 +669,7 @@ void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime, bool i
     	});
 }
 
-void UWeb3Auth::fetchProjectConfig(FNetwork network)
+void UWeb3Auth::fetchProjectConfig()
 {
     web3AuthApi->FetchProjectConfig(web3AuthOptions.clientId, web3AuthOptions.network.ToString().ToLower(), true, [this](FProjectConfigResponse response)
         {
