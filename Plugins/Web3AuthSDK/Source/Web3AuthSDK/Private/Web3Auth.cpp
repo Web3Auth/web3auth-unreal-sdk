@@ -669,6 +669,14 @@ void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime, bool i
     	});
 }
 
+void UWeb3Auth::fetchProjectConfig(FNetwork network)
+{
+    web3AuthApi->FetchProjectConfig(web3AuthOptions.clientId, web3AuthOptions.network.ToString().ToLower(), true, [this](FProjectConfigResponse response)
+        {
+            UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response.message);
+        });
+}
+
 void UWeb3Auth::handleCreateSessionResponse(FString path, FString newSessionKey, bool isWalletService) {
         TSharedPtr<FJsonObject> loginIdObject = MakeShareable(new FJsonObject);
         loginIdObject->SetStringField(TEXT("loginId"), newSessionKey);

@@ -481,50 +481,6 @@ struct FUserInfo
 };
 
 USTRUCT(BlueprintType)
-struct FWhiteLabelData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString appName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString logoLight;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString logoDark;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    	FLanguage defaultLanguage = FLanguage::en;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    	FThemeModes mode;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		TMap<FString, FString> theme;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    	FString appUrl;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    	bool useLogoLoader;
-
-	FWhiteLabelData() {};
-
-	void operator= (const FWhiteLabelData& other) {
-		appName = other.appName;
-		logoLight = other.logoLight;
-		logoDark = other.logoDark;
-		defaultLanguage = other.defaultLanguage;
-		mode = other.mode;
-		theme = other.theme;
-		appUrl = other.appUrl;
-		useLogoLoader = other.useLogoLoader;
-	}
-
-};
-
-USTRUCT(BlueprintType)
 struct FChainConfig
 {
     GENERATED_BODY()
@@ -865,4 +821,5 @@ private:
 	void sessionTimeout();
 	void createSession(const FString& jsonData, int32 sessionTime, bool isWalletService);
     void handleCreateSessionResponse(FString path, FString newSessionKey, bool isWalletService);
+    void fetchProjectConfig();
 };
