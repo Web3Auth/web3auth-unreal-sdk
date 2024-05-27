@@ -49,6 +49,7 @@ void UWeb3Auth::CallJniVoidMethod(JNIEnv* Env, const jclass Class, jmethodID Met
 void UWeb3Auth::setOptions(FWeb3AuthOptions options) {
 	this->web3AuthOptions = options;
 	authorizeSession();
+	fetchProjectConfig();
 }
 
 void UWeb3Auth::request(FString path, FLoginParams* loginParams = NULL, TSharedPtr<FJsonObject> extraParams = NULL) {
@@ -118,6 +119,23 @@ void UWeb3Auth::request(FString path, FLoginParams* loginParams = NULL, TSharedP
         FJsonObjectConverter::UStructToJsonObjectString(FWhiteLabelData::StaticStruct(), &web3AuthOptions.whiteLabel, output);
 
 		initParams->SetStringField("whiteLabel", output);
+	}
+
+	if (!web3AuthOptions.originData.IsEmpty())
+	{
+		FString jsonString;
+		TSharedRef<FJsonObject> jsonObject = MakeShared<FJsonObject>();
+
+		// Convert TMap to JsonObject
+		for (const auto& Elem : web3AuthOptions.originData)
+		{
+			jsonObject->SetStringField(Elem.Key, Elem.Value);
+		}
+
+		// Serialize JsonObject to JsonString
+		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&jsonString);
+		FJsonSerializer::Serialize(jsonObject, Writer);
+		initParams->SetStringField("originData", jsonString);
 	}
 
 	FString chainConfigOutput;
@@ -285,6 +303,23 @@ void UWeb3Auth::launchWalletServices(FChainConfig chainConfig) {
 
             initParams->SetStringField("whiteLabel", output);
         }
+
+    	if (!web3AuthOptions.originData.IsEmpty())
+    	{
+    		FString jsonString;
+    		TSharedRef<FJsonObject> jsonObject = MakeShared<FJsonObject>();
+
+    		// Convert TMap to JsonObject
+    		for (const auto& Elem : web3AuthOptions.originData)
+    		{
+    			jsonObject->SetStringField(Elem.Key, Elem.Value);
+    		}
+
+    		// Serialize JsonObject to JsonString
+    		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&jsonString);
+    		FJsonSerializer::Serialize(jsonObject, Writer);
+    		initParams->SetStringField("originData", jsonString);
+    	}
 
         FString chainConfigOutput;
         FJsonObjectConverter::UStructToJsonObjectString(FChainConfig::StaticStruct(), &chainConfig, chainConfigOutput);
@@ -671,10 +706,74 @@ void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime, bool i
 
 void UWeb3Auth::fetchProjectConfig()
 {
-    web3AuthApi->FetchProjectConfig(web3AuthOptions.clientId, web3AuthOptions.network.ToString().ToLower(), true, [this](FProjectConfigResponse response)
-        {
-            UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response.message);
-        });
+	FString network;
+
+	switch (web3AuthOptions.network)
+	{
+	case FNetwork::MAINNET:
+		network = "mainnet";
+		break;
+	case FNetwork::TESTNET:
+		network = "testnet";
+		break;
+	case FNetwork::CYAN:
+		network = "cyan";
+		break;
+	case FNetwork::AQUA:
+		network = "aqua";
+		break;
+	case FNetwork::SAPPHIRE_DEVNET:
+		network = "sapphire_devnet";
+		break;
+	case FNetwork::SAPPHIRE_MAINNET:
+		network = "sapphire_mainnet";
+		break;
+	}
+
+	web3AuthApi->FetchProjectConfig(web3AuthOptions.clientId, network, true, [this](FProjectConfigResponse response)
+	{
+		//UE_LOG(LogTemp, Log, TEXT("Response: "), response.wallet_connect_project_id);
+		FWhiteLabelData mergedResponseData = mergeWhiteLabelData(web3AuthOptions.whiteLabel);
+		web3AuthOptions.whiteLabel = mergedResponseData;
+		//UE_LOG(LogTemp, Log, TEXT("White Label Data: %s"), FWhiteLabelDataToString(web3AuthOptions.whiteLabel));
+
+		TMap<FString, FString> mergedMap = mergeMaps(web3AuthOptions.originData, response.whitelist.signed_urls);
+		web3AuthOptions.originData = mergedMap;
+		//UE_LOG(LogTemp, Log, TEXT("Origin Data: %s"), MapToString(web3AuthOptions.originData));
+	});
+}
+
+FWhiteLabelData UWeb3Auth::mergeWhiteLabelData(const FWhiteLabelData& other)
+{
+	TMap<FString, FString> mergedTheme;
+	if (web3AuthOptions.whiteLabel.theme.Num() > 0) {
+		for (const auto& Elem : web3AuthOptions.whiteLabel.theme) {
+			mergedTheme.Add(Elem.Key, Elem.Value);
+		}
+	}
+	if (other.theme.Num() > 0) {
+		for (const auto& Elem : other.theme) {
+			mergedTheme.Add(Elem.Key, Elem.Value.IsEmpty() ? mergedTheme.FindRef(Elem.Key) : Elem.Value);
+		}
+	}
+
+	FWhiteLabelData mergedData;
+	mergedData.appName = web3AuthOptions.whiteLabel.appName.IsEmpty() ? other.appName : web3AuthOptions.whiteLabel.appName;
+	mergedData.appUrl = web3AuthOptions.whiteLabel.appUrl.IsEmpty() ? other.appUrl : web3AuthOptions.whiteLabel.appUrl;
+	mergedData.logoLight = web3AuthOptions.whiteLabel.logoLight.IsEmpty() ? other.logoLight : web3AuthOptions.whiteLabel.logoLight;
+	mergedData.logoDark = web3AuthOptions.whiteLabel.logoDark.IsEmpty() ? other.logoDark : web3AuthOptions.whiteLabel.logoDark;
+	mergedData.useLogoLoader = web3AuthOptions.whiteLabel.useLogoLoader ? web3AuthOptions.whiteLabel.useLogoLoader : other.useLogoLoader;
+	mergedData.theme = mergedTheme;
+	return mergedData;
+}
+
+TMap<FString, FString> UWeb3Auth::mergeMaps(const TMap<FString, FString>& map1, const TMap<FString, FString>& map2)
+{
+	TMap<FString, FString> MergedMap = map1;
+	for (const auto& Elem : map2) {
+		MergedMap.Add(Elem.Key, Elem.Value);
+	}
+	return MergedMap;
 }
 
 void UWeb3Auth::handleCreateSessionResponse(FString path, FString newSessionKey, bool isWalletService) {

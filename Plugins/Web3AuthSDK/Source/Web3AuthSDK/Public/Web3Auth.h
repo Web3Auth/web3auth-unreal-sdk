@@ -642,6 +642,9 @@ struct FWeb3AuthOptions
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     	FChainConfig chainConfig;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TMap<FString, FString> originData;
+
 	FWeb3AuthOptions() {};
 
 	void operator= (const FWeb3AuthOptions& other) {
@@ -658,8 +661,8 @@ struct FWeb3AuthOptions
         mfaSettings = other.mfaSettings;
         sessionTime = other.sessionTime;
         chainConfig = other.chainConfig;
+		originData = other.originData;
 	}
-
 };
 
 USTRUCT(BlueprintType)
@@ -809,4 +812,6 @@ private:
 	void createSession(const FString& jsonData, int32 sessionTime, bool isWalletService);
     void handleCreateSessionResponse(FString path, FString newSessionKey, bool isWalletService);
     void fetchProjectConfig();
+	FWhiteLabelData mergeWhiteLabelData(const FWhiteLabelData& other);
+	static TMap<FString, FString> mergeMaps(const TMap<FString, FString>& map1, const TMap<FString, FString>& map2);
 };

@@ -3,6 +3,15 @@
 
 #include "Web3AuthApi.h"
 
+TMap<FString, FString> SIGNER_MAP = {
+    { "mainnet", "https://signer.web3auth.io" },
+    { "testnet", "https://signer.web3auth.io" },
+    { "cyan", "https://signer-polygon.web3auth.io" },
+    { "aqua", "https://signer-polygon.web3auth.io" },
+    { "sapphire_mainnet", "https://signer.web3auth.io" },
+    { "sapphire_devnet", "https://signer.web3auth.io" }
+};
+
 UWeb3AuthApi* UWeb3AuthApi::Instance = nullptr;
 
 UWeb3AuthApi* UWeb3AuthApi::GetInstance()
@@ -108,11 +117,12 @@ void UWeb3AuthApi::FetchProjectConfig(const FString& projectId, const FString& n
 
     FString baseUrl = SIGNER_MAP[network];
     FString path = FString::Printf(TEXT("/api/configuration?project_id=%s&network=%s&whitelist=%s"),
-                                    *FString::UrlEncode(projectId),
-                                    *FString::UrlEncode(network),
+                                    *FGenericPlatformHttp::UrlEncode(projectId),
+                                    *FGenericPlatformHttp::UrlEncode(network),
                                     whitelist ? TEXT("true") : TEXT("false"));
     FString URL = baseUrl + path;
     request->SetURL(URL);
+    //UE_LOG(LogTemp, Log, TEXT("Request URL: %s"), *URL);
 
     request->OnProcessRequestComplete().BindLambda([callback](FHttpRequestPtr request, FHttpResponsePtr response, bool success) {
         if (success && response->GetResponseCode() == EHttpResponseCodes::Ok) {
@@ -134,15 +144,6 @@ void UWeb3AuthApi::FetchProjectConfig(const FString& projectId, const FString& n
 
     request->ProcessRequest();
 }
-
-TMap<FString, FString> SIGNER_MAP = {
-    { "mainnet", "https://signer.web3auth.io" },
-    { "testnet", "https://signer.web3auth.io" },
-    { "cyan", "https://signer-polygon.web3auth.io" },
-    { "aqua", "https://signer-polygon.web3auth.io" },
-    { "sapphire_mainnet", "https://signer.web3auth.io" },
-    { "sapphire_devnet", "https://signer.web3auth.io" }
-};
 
 UWeb3AuthApi::UWeb3AuthApi()
 {

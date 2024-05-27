@@ -6,6 +6,8 @@
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "Web3AuthApi.generated.h"
 
+extern TMap<FString, FString> SIGNER_MAP;
+
 UENUM(BlueprintType)
 enum class FLanguage : uint8
 {
