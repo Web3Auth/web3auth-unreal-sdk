@@ -83,7 +83,7 @@ struct FProjectConfigResponse
     GENERATED_BODY()
 
     UPROPERTY()
-    FWhiteLabelData whiteLabelData;
+    FWhiteLabelData whiteLabel;
 
     UPROPERTY()
     bool sms_otp_enabled;

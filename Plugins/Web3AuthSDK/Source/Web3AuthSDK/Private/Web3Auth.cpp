@@ -733,7 +733,7 @@ void UWeb3Auth::fetchProjectConfig()
 	web3AuthApi->FetchProjectConfig(web3AuthOptions.clientId, network, true, [this](FProjectConfigResponse response)
 	{
 		//UE_LOG(LogTemp, Log, TEXT("Response: "), response.wallet_connect_project_id);
-		FWhiteLabelData mergedResponseData = mergeWhiteLabelData(web3AuthOptions.whiteLabel);
+		FWhiteLabelData mergedResponseData = mergeWhiteLabelData(response.whiteLabel);
 		web3AuthOptions.whiteLabel = mergedResponseData;
 		//UE_LOG(LogTemp, Log, TEXT("White Label Data: %s"), FWhiteLabelDataToString(web3AuthOptions.whiteLabel));
 
