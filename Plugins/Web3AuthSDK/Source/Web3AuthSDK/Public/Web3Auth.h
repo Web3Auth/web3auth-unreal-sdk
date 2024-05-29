@@ -3,33 +3,27 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
-#include "Json.h"
 #include "JsonUtilities.h"
 
-#include "Misc/Base64.h"
 #include "ECCrypto.h"
-#include "Web3AuthApi.h"
 #include "KeyStoreUtils.h"
+#include "Web3AuthApi.h"
+#include "Misc/Base64.h"
+#include "Dom/JsonValue.h"
 
 #include "Containers/UnrealString.h"
-#include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
 
-#include "Runtime/Online/HTTPServer/Public/HttpPath.h"
 #include "Runtime/Online/HTTPServer/Public/IHttpRouter.h"
-#include "Runtime/Online/HTTPServer/Public/HttpServerHttpVersion.h"
-#include "Runtime/Online/HTTPServer/Public/HttpServerModule.h"
-#include "Runtime/Online/HTTPServer/Public/HttpServerResponse.h"
-
+#include "HttpServerModule.h"
 
 #if PLATFORM_ANDROID
 #include "../../../Launch/Public/Android/AndroidJNI.h"
 #include "Android/AndroidApplication.h"
 #endif
 
-#include "Web3AuthError.h"
 #include "Web3Auth.generated.h"
-
 
 UENUM(BlueprintType)
 enum class FDisplay : uint8
@@ -67,7 +61,9 @@ enum class FProvider : uint8
 	WECHAT,
 	EMAIL_PASSWORDLESS,
 	EMAIL_PASSWORD,
-	JWT
+	JWT,
+    SMS_PASSWORDLESS,
+    FARCASTER
 };
 
 UENUM(BlueprintType)
@@ -88,7 +84,9 @@ enum class FTypeOfLogin : uint8
 	WECHAT,
 	EMAIL_PASSWORDLESS,
 	EMAIL_PASSWORD,
-	JWT
+	JWT,
+    SMS_PASSWORDLESS,
+    FARCASTER
 };
 
 UENUM(BlueprintType)
@@ -164,6 +162,9 @@ struct WEB3AUTHSDK_API FExtraLoginOptions
 		FString ui_locales;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FString id_token;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString id_token_hint;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -224,6 +225,9 @@ struct WEB3AUTHSDK_API FExtraLoginOptions
 
 		if (!ui_locales.IsEmpty())
 			output->SetStringField("ui_locales", ui_locales);
+
+        if (!id_token.IsEmpty())
+            output->SetStringField("id_token", id_token);
 
 		if (!id_token_hint.IsEmpty())
 			output->SetStringField("id_token_hint", id_token_hint);
@@ -468,6 +472,10 @@ struct FUserInfo
     			&& oAuthAccessToken.IsEmpty();
     }
 
+	FString ToString() const {
+		return FString::Printf(TEXT("email: %s, name: %s, profileImage: %s, aggregateVerifier: %s, verifier: %s, verifierId: %s, typeOfLogin: %s, dappShare: %s, idToken: %s, oAuthIdToken: %s, oAuthAccessToken: %s, isMfaEnabled: %d"),
+			*email, *name, *profileImage, *aggregateVerifier, *verifier, *verifierId, *typeOfLogin, *dappShare, *idToken, *oAuthIdToken, *oAuthAccessToken, isMfaEnabled);
+	}
 };
 
 USTRUCT(BlueprintType)
@@ -783,6 +791,8 @@ protected:
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     virtual void Deinitialize() override;
 public:
+	UWeb3Auth();
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FWeb3AuthResponse web3AuthResponse;
 
@@ -798,12 +808,15 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void processLogout();
 
-   UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable)
         void enableMFA(FLoginParams loginParams);
 
     UFUNCTION(BlueprintCallable)
-        void launchWalletServices(FLoginParams loginParams, FChainConfig chainConfig);
+        void launchWalletServices(FChainConfig chainConfig);
 
+	UFUNCTION(BlueprintCallable)
+	void request(FChainConfig chainConfig, FString method, TArray<FString> requestParams, FString path = "wallet/request");
+	
 	UFUNCTION(BlueprintCallable)
 		void setResultUrl(FString code);
 
@@ -833,12 +846,21 @@ public:
     UFUNCTION(BlueprintCallable)
     		FUserInfo getUserInfo();
 
+	UFUNCTION(BlueprintCallable)
+	static void setSignResponse(const FSignResponse Response);
+
+	UFUNCTION(BlueprintPure)
+	static FSignResponse getSignResponse();
+
     #if PLATFORM_IOS
     static void callBackFromWebAuthenticateIOS(NSString* sResult);
     #endif
 private:
-	void request(FString  path, FLoginParams* loginParams, TSharedPtr<FJsonObject> extraParam);
-
+	void processRequest(FString  path, FLoginParams* loginParams, TSharedPtr<FJsonObject> extraParam);
+	
+	bool bIsRequestResponse;
+	static FSignResponse signResponse;
+	
 	template <typename StructType>
 	void GetJsonStringFromStruct(StructType FilledStruct, FString& StringOutput);
 
