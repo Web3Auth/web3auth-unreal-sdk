@@ -46,12 +46,30 @@ void UWeb3Auth::CallJniVoidMethod(JNIEnv* Env, const jclass Class, jmethodID Met
 }
 #endif
 
+UWeb3Auth::UWeb3Auth(): crypto(nullptr), keyStoreUtils(nullptr)
+{
+	bIsRequestResponse = false;
+}
+
+FSignResponse UWeb3Auth::signResponse;
+
 void UWeb3Auth::setOptions(FWeb3AuthOptions options) {
 	this->web3AuthOptions = options;
 	authorizeSession();
 }
 
-void UWeb3Auth::request(FString path, FLoginParams* loginParams = NULL, TSharedPtr<FJsonObject> extraParams = NULL) {
+FSignResponse UWeb3Auth::getSignResponse()
+{
+	//UE_LOG(LogTemp, Log, TEXT("signResponse: %s"), *signResponse.ToString());
+	return signResponse;
+}
+
+void UWeb3Auth::setSignResponse(const FSignResponse response)
+{
+	signResponse = response;	
+}
+
+void UWeb3Auth::processRequest(FString path, FLoginParams* loginParams = nullptr, TSharedPtr<FJsonObject> extraParams = nullptr) {
 	TSharedPtr<FJsonObject> paramMap = MakeShareable(new FJsonObject);
 
 
@@ -157,11 +175,11 @@ void UWeb3Auth::request(FString path, FLoginParams* loginParams = NULL, TSharedP
         params->SetStringField("curve", "ed25519");
     }
 
-	if (extraParams != NULL) {
+	if (extraParams != nullptr) {
 		params = extraParams;
 	}
 
-	if (loginParams != NULL) {
+	if (loginParams != nullptr) {
 		for (auto o : loginParams->getJsonObject().Values) {
 			params->SetField(o.Key, o.Value);
 		}
@@ -333,7 +351,7 @@ void UWeb3Auth::launchWalletServices(FChainConfig chainConfig) {
 
 void UWeb3Auth::processLogin(FLoginParams loginParams) {
 	UE_LOG(LogTemp, Warning, TEXT("login called"));
-	this->request("login", &loginParams);
+	this->processRequest("login", &loginParams);
 }
 
 void UWeb3Auth::processLogout() {
@@ -344,10 +362,228 @@ void UWeb3Auth::enableMFA(FLoginParams loginParams) {
     UE_LOG(LogTemp, Warning, TEXT("enableMFA called"));
     this->sessionId = keyStoreUtils->Get();
     if (!this->sessionId.IsEmpty()) {
-        this->request("enable_mfa", &loginParams);
+        this->processRequest("enable_mfa", &loginParams);
     } else {
         UE_LOG(LogTemp, Error, TEXT("SessionId not found. Please login first."));
     }
+}
+
+void UWeb3Auth::request(FChainConfig chainConfig, FString method, TArray<FString> requestParams, FString path)
+{
+	this->sessionId = keyStoreUtils->Get();
+	if (!this->sessionId.IsEmpty())
+	{
+		TSharedPtr <FJsonObject> paramMap = MakeShareable(new FJsonObject);
+
+        TSharedPtr <FJsonObject> initParams = MakeShareable(new FJsonObject);
+        initParams->SetStringField("clientId", web3AuthOptions.clientId);
+
+        switch (web3AuthOptions.network) {
+            case FNetwork::MAINNET:
+                initParams->SetStringField("network", "mainnet");
+                break;
+            case FNetwork::TESTNET:
+                initParams->SetStringField("network", "testnet");
+                break;
+            case FNetwork::CYAN:
+                initParams->SetStringField("network", "cyan");
+                break;
+            case FNetwork::AQUA:
+                initParams->SetStringField("network", "aqua");
+                break;
+            case FNetwork::SAPPHIRE_DEVNET:
+                initParams->SetStringField("network", "sapphire_devnet");
+                break;
+            case FNetwork::SAPPHIRE_MAINNET:
+                initParams->SetStringField("network", "sapphire_mainnet");
+                break;
+        }
+
+        FMfaSettings defaultMFA;
+
+        if (!(web3AuthOptions.mfaSettings == defaultMFA)) {
+            FString mfaSettingsJson;
+            FJsonObjectConverter::UStructToJsonObjectString(web3AuthOptions.mfaSettings,
+                                                            mfaSettingsJson);
+            initParams->SetStringField(TEXT("mfaSettings"), mfaSettingsJson);
+        }
+
+        if (web3AuthOptions.sessionTime > 0) {
+            initParams->SetNumberField(TEXT("sessionTime"), web3AuthOptions.sessionTime);
+        }
+
+#if !PLATFORM_ANDROID && !PLATFORM_IOS
+        FString redirectUrl = startLocalWebServer();
+        initParams->SetStringField("redirectUrl", redirectUrl);
+#else
+        if (web3AuthOptions.redirectUrl != "")
+            initParams->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
+#endif
+
+        switch (web3AuthOptions.buildEnv) {
+            case FBuildEnv::PRODUCTION:
+                initParams->SetStringField("buildEnv", "production");
+                break;
+            case FBuildEnv::TESTING:
+                initParams->SetStringField("buildEnv", "testing");
+                break;
+            case FBuildEnv::STAGING:
+                initParams->SetStringField("buildEnv", "staging");
+                break;
+        }
+
+        if (web3AuthOptions.whiteLabel.appName != "") {
+            FString output;
+            FJsonObjectConverter::UStructToJsonObjectString(FWhiteLabelData::StaticStruct(),
+                                                            &web3AuthOptions.whiteLabel, output);
+
+            initParams->SetStringField("whiteLabel", output);
+        }
+
+        FString chainConfigOutput;
+        FJsonObjectConverter::UStructToJsonObjectString(FChainConfig::StaticStruct(), &chainConfig, chainConfigOutput);
+        initParams->SetStringField("chainConfig", chainConfigOutput);
+
+        if (!web3AuthOptions.loginConfig.IsEmpty()) {
+            FString output;
+
+            TSharedPtr <FJsonObject> loginConfigMap = MakeShareable(new FJsonObject);
+
+            for (auto item: web3AuthOptions.loginConfig) {
+                TSharedPtr <FJsonObject> loginConfigObject = MakeShareable(new FJsonObject);
+                FJsonObjectConverter::UStructToJsonObject(FLoginConfigItem::StaticStruct(),
+                                                          &item.Value,
+                                                          loginConfigObject.ToSharedRef(), 0, 0);
+
+                loginConfigMap->SetObjectField(item.Key, loginConfigObject);
+            }
+
+            TSharedRef <TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&output);
+            FJsonSerializer::Serialize(loginConfigMap.ToSharedRef(), Writer);
+
+            initParams->SetStringField("loginConfig", output);
+        }
+
+        paramMap->SetObjectField("options", initParams.ToSharedRef());
+        //paramMap->SetStringField("actionType", "login");
+
+        FString json;
+        TSharedRef <TJsonWriter<>> jsonWriter = TJsonWriterFactory<>::Create(&json);
+        FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
+
+        if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
+            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v2";
+        } else if (web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
+            web3AuthOptions.walletSdkUrl = "https://develop-wallet.web3auth.io";
+        } else {
+            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v2";
+        }
+
+        //createSession(json, 86400, true);
+		FString newSessionKey = crypto->generateRandomSessionKey();
+		FString ephemPublicKey = crypto->generatePublicKey(newSessionKey);
+		FString ivKey = crypto->generateRandomBytes(16);
+
+		FString macKeyHex = FString();
+		FString encryptedData = crypto->encrypt(json, newSessionKey, ephemPublicKey, ivKey, macKeyHex);
+ 
+		FString finalMac = crypto->getMac(encryptedData, ephemPublicKey, ivKey, macKeyHex);
+
+		if (!crypto->hmacSha256Verify(macKeyHex, crypto->getCombinedData(encryptedData, ephemPublicKey, ivKey), finalMac))
+		{
+			// throw new BadMacException
+			FString errorMessage = TEXT("Bad MAC error during encryption");
+		}
+
+		FShareMetaData shareMetaData;
+		shareMetaData.ciphertext = encryptedData;
+		shareMetaData.ephemPublicKey = ephemPublicKey;
+		shareMetaData.iv = ivKey;
+		shareMetaData.mac = finalMac;
+
+		TSharedPtr<FJsonObject> jsonObject = MakeShareable(new FJsonObject);
+		FJsonObjectConverter::UStructToJsonObject(FShareMetaData::StaticStruct(), &shareMetaData, jsonObject.ToSharedRef(), 0, 0);
+
+		FString jsonString;
+		TSharedRef<TJsonWriter<TCHAR>> json_writer = TJsonWriterFactory<>::Create(&jsonString);
+		FJsonSerializer::Serialize(jsonObject.ToSharedRef(), json_writer);
+
+		FString sig = crypto->generateECDSASignature(newSessionKey, jsonString);
+
+		FLogoutApiRequest request;
+		request.data = jsonString;
+		request.key = ephemPublicKey;
+		request.signature = sig;
+		request.timeout = FMath::Min(86400, 7 * 86400);
+
+		web3AuthApi->CreateSession(request, [this, newSessionKey, method, requestParams, path](FString response)
+			{
+			UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response);
+
+			TSharedPtr<FJsonObject> requestData = MakeShared<FJsonObject>();
+			requestData->SetStringField(TEXT("method"), method);
+
+			// Serialize requestParams into a JSON array
+			TArray<TSharedPtr<FJsonValue>> jsonArray;
+			for (const FString& param : requestParams)
+			{
+				jsonArray.Add(MakeShared<FJsonValueString>(param));
+			}
+
+			// Convert the JSON array to a string
+			FString paramsString;
+			TSharedRef<TJsonWriter<>> writer = TJsonWriterFactory<>::Create(&paramsString);
+			FJsonSerializer::Serialize(jsonArray, writer);
+
+			// Add the serialized JSON array string to requestData
+			requestData->SetStringField(TEXT("params"), paramsString);
+
+			// Create the JSON object for signMessageMap
+			TSharedPtr<FJsonObject> signMessageMap = MakeShared<FJsonObject>();
+			signMessageMap->SetStringField(TEXT("loginId"), newSessionKey);
+			signMessageMap->SetStringField(TEXT("sessionId"), this->sessionId);
+			signMessageMap->SetStringField(TEXT("platform"), TEXT("unreal"));
+			signMessageMap->SetObjectField(TEXT("request"), requestData);
+
+			// Print the JSON string for debugging
+			FString outputString;
+			TSharedRef<TJsonWriter<>> outputWriter1 = TJsonWriterFactory<>::Create(&outputString);
+			FJsonSerializer::Serialize(signMessageMap.ToSharedRef(), outputWriter1);
+			//UE_LOG(LogTemp, Log, TEXT("Final JSON: %s"), *outputString);
+
+			// Convert to Base64
+			FString output;
+			TSharedRef< TJsonWriter<> > outputWriter = TJsonWriterFactory<>::Create(&output);
+			FJsonSerializer::Serialize(signMessageMap.ToSharedRef(), outputWriter);
+			FString encode = FBase64::Encode(output);
+
+			// Build the URI
+			FString url = web3AuthOptions.walletSdkUrl + "/" + path + "#" + "b64Params=" + encode;
+			bIsRequestResponse = true;
+			
+			#if PLATFORM_ANDROID
+			thiz_instance = this;
+			if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true))
+			{
+				jstring jurl = Env->NewStringUTF(TCHAR_TO_UTF8(*url));
+
+				jclass jbrowserViewClass = FAndroidApplication::FindJavaClass("com/Plugins/Web3AuthSDK/BrowserView");
+				static jmethodID jlaunchUrl = FJavaWrapper::FindStaticMethod(Env, jbrowserViewClass, "launchUrl", "(Landroid/app/Activity;Ljava/lang/String;)V", false);
+
+				CallJniVoidMethod(Env, jbrowserViewClass, jlaunchUrl, FJavaWrapper::GameActivityThis, jurl);
+			}
+			#elif PLATFORM_IOS
+			thiz_instance = this;
+			[[WebAuthenticate Singleton] launchUrl:TCHAR_TO_ANSI(*url)];
+			#else
+			FPlatformProcess::LaunchURL(*url, nullptr, nullptr);
+			#endif
+			});
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("SessionId not found. Please login first."));
+	}
 }
 
 void UWeb3Auth::setResultUrl(FString hash) {
@@ -356,7 +592,7 @@ void UWeb3Auth::setResultUrl(FString hash) {
 		return;
 	}
 
-	//UE_LOG(LogTemp, Warning, TEXT("respose base64 %s"), *hash);
+	//UE_LOG(LogTemp, Warning, TEXT("response base64 %s"), *hash);
 
 	TArray<uint8> decodedBytes;
     FBase64::Decode(hash, decodedBytes);
@@ -366,6 +602,28 @@ void UWeb3Auth::setResultUrl(FString hash) {
     int32 braceIndex = decodedString.Find(TEXT("}"));
     FString substringBeforeBrace = decodedString.Left(braceIndex + 1);
     //UE_LOG(LogTemp, Warning, TEXT("substringBeforeBrace: %s"), *substringBeforeBrace);
+
+	if(bIsRequestResponse) {
+		try
+		{
+			TSharedPtr<FJsonObject> jsonObject;
+			TSharedRef<TJsonReader<>> reader = TJsonReaderFactory<>::Create(substringBeforeBrace);
+			if (FJsonSerializer::Deserialize(reader, jsonObject) && jsonObject.IsValid())
+			{
+				signResponse.success = jsonObject->GetBoolField(TEXT("success"));
+				signResponse.result = jsonObject->GetStringField(TEXT("result"));
+				signResponse.error = jsonObject->GetStringField(TEXT("error"));
+				UE_LOG(LogTemp, Warning, TEXT("signResponse - success: %d, result: %s, error: %s"), signResponse.success, *signResponse.result, *signResponse.error);
+				setSignResponse(signResponse);
+			}
+		}
+		catch (const std::exception& ex)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to parse SignResponse JSON"));
+		}
+		bIsRequestResponse = false;
+		return;
+	}
 
     FSessionResponse response;
     TSharedPtr<FJsonObject> jsonObject;
@@ -567,6 +825,15 @@ void UWeb3Auth::authorizeSession() {
 						return;
 					}
 
+					//UE_LOG(LogTemp, Log, TEXT("web3AuthResponse - privKey: %s, ed25519PrivKey: %s, error: %s, sessionId: %s, coreKitKey: %s, coreKitEd25519PrivKey: %s"),
+					//	*web3AuthResponse.privKey,
+					//	*web3AuthResponse.ed25519PrivKey,
+					//	*web3AuthResponse.error,
+					//	*web3AuthResponse.sessionId,
+					//	*web3AuthResponse.coreKitKey,
+					//	*web3AuthResponse.coreKitEd25519PrivKey);
+					//UE_LOG(LogTemp, Log, TEXT("userInfo: %s"), *web3AuthResponse.userInfo.ToString());
+					
 					this->loginEvent.ExecuteIfBound(web3AuthResponse);
                     this->mfaEvent.ExecuteIfBound(true);
 				}
@@ -692,6 +959,7 @@ void UWeb3Auth::handleCreateSessionResponse(FString path, FString newSessionKey,
         } else {
             url = web3AuthOptions.sdkUrl + "/" + path + "#" + "b64Params=" + encode;
         }
+		bIsRequestResponse = false;
 
 #if PLATFORM_ANDROID
         thiz_instance = this;
