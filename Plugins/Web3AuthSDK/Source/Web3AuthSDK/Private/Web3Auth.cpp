@@ -733,13 +733,11 @@ void UWeb3Auth::fetchProjectConfig()
 	web3AuthApi->FetchProjectConfig(web3AuthOptions.clientId, network, true, [this](FProjectConfigResponse response)
 	{
 		//UE_LOG(LogTemp, Log, TEXT("Response: "), response.wallet_connect_project_id);
-		FWhiteLabelData mergedResponseData = mergeWhiteLabelData(response.whiteLabel);
+		FWhiteLabelData mergedResponseData = mergeWhiteLabelData(response.whitelabel);
 		web3AuthOptions.whiteLabel = mergedResponseData;
-		//UE_LOG(LogTemp, Log, TEXT("White Label Data: %s"), FWhiteLabelDataToString(web3AuthOptions.whiteLabel));
 
 		TMap<FString, FString> mergedMap = mergeMaps(web3AuthOptions.originData, response.whitelist.signed_urls);
 		web3AuthOptions.originData = mergedMap;
-		//UE_LOG(LogTemp, Log, TEXT("Origin Data: %s"), MapToString(web3AuthOptions.originData));
 	});
 }
 
@@ -753,7 +751,9 @@ FWhiteLabelData UWeb3Auth::mergeWhiteLabelData(const FWhiteLabelData& other)
 	}
 	if (other.theme.Num() > 0) {
 		for (const auto& Elem : other.theme) {
-			mergedTheme.Add(Elem.Key, Elem.Value.IsEmpty() ? mergedTheme.FindRef(Elem.Key) : Elem.Value);
+            if (!mergedTheme.Contains(Elem.Key)) {
+                mergedTheme.Add(Elem.Key, Elem.Value.IsEmpty() ? mergedTheme.FindRef(Elem.Key) : Elem.Value);
+            }
 		}
 	}
 

@@ -127,7 +127,7 @@ void UWeb3AuthApi::FetchProjectConfig(const FString& projectId, const FString& n
     request->OnProcessRequestComplete().BindLambda([callback](FHttpRequestPtr request, FHttpResponsePtr response, bool success) {
         if (success && response->GetResponseCode() == EHttpResponseCodes::Ok) {
             FString responseString = response->GetContentAsString();
-            UE_LOG(LogTemp, Log, TEXT("Response: %s"), *responseString);
+            //UE_LOG(LogTemp, Log, TEXT("FetchProjectConfig Response: %s"), *responseString);
 
             FProjectConfigResponse configResponse;
             if (FJsonObjectConverter::JsonObjectStringToUStruct(responseString, &configResponse, 0, 0)) {
