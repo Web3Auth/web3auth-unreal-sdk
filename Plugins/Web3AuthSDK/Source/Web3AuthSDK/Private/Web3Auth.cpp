@@ -762,7 +762,7 @@ FWhiteLabelData UWeb3Auth::mergeWhiteLabelData(const FWhiteLabelData& other)
 	mergedData.appUrl = web3AuthOptions.whiteLabel.appUrl.IsEmpty() ? other.appUrl : web3AuthOptions.whiteLabel.appUrl;
 	mergedData.logoLight = web3AuthOptions.whiteLabel.logoLight.IsEmpty() ? other.logoLight : web3AuthOptions.whiteLabel.logoLight;
 	mergedData.logoDark = web3AuthOptions.whiteLabel.logoDark.IsEmpty() ? other.logoDark : web3AuthOptions.whiteLabel.logoDark;
-	mergedData.useLogoLoader = web3AuthOptions.whiteLabel.useLogoLoader ? web3AuthOptions.whiteLabel.useLogoLoader : other.useLogoLoader;
+	mergedData.useLogoLoader = web3AuthOptions.whiteLabel.useLogoLoader ? other.useLogoLoader : web3AuthOptions.whiteLabel.useLogoLoader;
 	mergedData.theme = mergedTheme;
 	return mergedData;
 }
