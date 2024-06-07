@@ -732,12 +732,17 @@ void UWeb3Auth::fetchProjectConfig()
 
 	web3AuthApi->FetchProjectConfig(web3AuthOptions.clientId, network, true, [this](FProjectConfigResponse response)
 	{
-		//UE_LOG(LogTemp, Log, TEXT("Response: "), response.wallet_connect_project_id);
-		FWhiteLabelData mergedResponseData = mergeWhiteLabelData(response.whitelabel);
-		web3AuthOptions.whiteLabel = mergedResponseData;
-
 		TMap<FString, FString> mergedMap = mergeMaps(web3AuthOptions.originData, response.whitelist.signed_urls);
 		web3AuthOptions.originData = mergedMap;
+
+		if (response.whitelabel.IsEmpty()) {
+			if(web3AuthOptions.whiteLabel.IsEmpty()) {
+				web3AuthOptions.whiteLabel = response.whitelabel;
+			} else {
+				FWhiteLabelData mergedResponseData = mergeWhiteLabelData(response.whitelabel);
+				web3AuthOptions.whiteLabel = mergedResponseData;
+			}
+		}
 	});
 }
 
