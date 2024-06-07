@@ -1,6 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 #include "Web3Auth.h"
 #include "Web3AuthError.h"
+#include "DynamicMesh/DynamicMesh3.h"
 
 #if PLATFORM_IOS
 #include "IOS/ObjC/WebAuthenticate.h"
@@ -735,7 +736,7 @@ void UWeb3Auth::fetchProjectConfig()
 		TMap<FString, FString> mergedMap = mergeMaps(web3AuthOptions.originData, response.whitelist.signed_urls);
 		web3AuthOptions.originData = mergedMap;
 
-		if (response.whitelabel.IsEmpty()) {
+		if (!response.whitelabel.IsEmpty()) {
 			if(web3AuthOptions.whiteLabel.IsEmpty()) {
 				web3AuthOptions.whiteLabel = response.whitelabel;
 			} else {

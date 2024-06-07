@@ -77,8 +77,7 @@ struct FWhiteLabelData
 
 	bool IsEmpty() const
 	{
-		return appName.IsEmpty() && logoLight.IsEmpty() && logoDark.IsEmpty() && appUrl.IsEmpty() &&
-			   defaultLanguage == FLanguage::en && theme.Num() == 0 && !useLogoLoader;
+		return appName.IsEmpty() && logoLight.IsEmpty() && logoDark.IsEmpty() && appUrl.IsEmpty() && theme.Num() == 0;
 	}
 
 };
