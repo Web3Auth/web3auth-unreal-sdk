@@ -21,14 +21,13 @@
 #include "Runtime/Online/HTTPServer/Public/HttpServerModule.h"
 #include "Runtime/Online/HTTPServer/Public/HttpServerResponse.h"
 
+#include "Web3AuthError.h"
+#include "Web3Auth.generated.h"
 
 #if PLATFORM_ANDROID
 #include "../../../Launch/Public/Android/AndroidJNI.h"
 #include "Android/AndroidApplication.h"
 #endif
-
-#include "Web3AuthError.h"
-#include "Web3Auth.generated.h"
 
 
 UENUM(BlueprintType)
@@ -67,7 +66,9 @@ enum class FProvider : uint8
 	WECHAT,
 	EMAIL_PASSWORDLESS,
 	EMAIL_PASSWORD,
-	JWT
+	JWT,
+    SMS_PASSWORDLESS,
+    FARCASTER
 };
 
 UENUM(BlueprintType)
@@ -88,7 +89,9 @@ enum class FTypeOfLogin : uint8
 	WECHAT,
 	EMAIL_PASSWORDLESS,
 	EMAIL_PASSWORD,
-	JWT
+	JWT,
+    SMS_PASSWORDLESS,
+    FARCASTER
 };
 
 UENUM(BlueprintType)
@@ -105,18 +108,6 @@ enum class FMFALevel : uint8
 	OPTIONAL,
 	MANDATORY,
 	NONE
-};
-
-UENUM(BlueprintType)
-enum class FLanguage : uint8
-{
-	en, de, ja, ko, zh, es, fr, pt, nl, tr
-};
-
-UENUM(BlueprintType)
-enum class FThemeModes : uint8
-{
-	light, dark
 };
 
 UENUM(BlueprintType)
@@ -162,6 +153,9 @@ struct WEB3AUTHSDK_API FExtraLoginOptions
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString ui_locales;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+        FString id_token;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString id_token_hint;
@@ -224,6 +218,9 @@ struct WEB3AUTHSDK_API FExtraLoginOptions
 
 		if (!ui_locales.IsEmpty())
 			output->SetStringField("ui_locales", ui_locales);
+
+        if (!id_token.IsEmpty())
+            output->SetStringField("id_token", id_token);
 
 		if (!id_token_hint.IsEmpty())
 			output->SetStringField("id_token_hint", id_token_hint);
@@ -471,50 +468,6 @@ struct FUserInfo
 };
 
 USTRUCT(BlueprintType)
-struct FWhiteLabelData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString appName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString logoLight;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString logoDark;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    	FLanguage defaultLanguage = FLanguage::en;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    	FThemeModes mode;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		TMap<FString, FString> theme;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    	FString appUrl;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    	bool useLogoLoader;
-
-	FWhiteLabelData() {};
-
-	void operator= (const FWhiteLabelData& other) {
-		appName = other.appName;
-		logoLight = other.logoLight;
-		logoDark = other.logoDark;
-		defaultLanguage = other.defaultLanguage;
-		mode = other.mode;
-		theme = other.theme;
-		appUrl = other.appUrl;
-		useLogoLoader = other.useLogoLoader;
-	}
-
-};
-
-USTRUCT(BlueprintType)
 struct FChainConfig
 {
     GENERATED_BODY()
@@ -689,6 +642,9 @@ struct FWeb3AuthOptions
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     	FChainConfig chainConfig;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TMap<FString, FString> originData;
+
 	FWeb3AuthOptions() {};
 
 	void operator= (const FWeb3AuthOptions& other) {
@@ -705,8 +661,8 @@ struct FWeb3AuthOptions
         mfaSettings = other.mfaSettings;
         sessionTime = other.sessionTime;
         chainConfig = other.chainConfig;
+		originData = other.originData;
 	}
-
 };
 
 USTRUCT(BlueprintType)
@@ -802,7 +758,7 @@ public:
         void enableMFA(FLoginParams loginParams);
 
     UFUNCTION(BlueprintCallable)
-        void launchWalletServices(FLoginParams loginParams, FChainConfig chainConfig);
+        void launchWalletServices(FChainConfig chainConfig);
 
 	UFUNCTION(BlueprintCallable)
 		void setResultUrl(FString code);
@@ -855,4 +811,7 @@ private:
 	void sessionTimeout();
 	void createSession(const FString& jsonData, int32 sessionTime, bool isWalletService);
     void handleCreateSessionResponse(FString path, FString newSessionKey, bool isWalletService);
+    void fetchProjectConfig();
+	FWhiteLabelData mergeWhiteLabelData(const FWhiteLabelData& other);
+	static TMap<FString, FString> mergeMaps(const TMap<FString, FString>& map1, const TMap<FString, FString>& map2);
 };

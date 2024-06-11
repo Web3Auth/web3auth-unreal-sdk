@@ -1,6 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 #include "Web3Auth.h"
 #include "Web3AuthError.h"
+#include "DynamicMesh/DynamicMesh3.h"
 
 #if PLATFORM_IOS
 #include "IOS/ObjC/WebAuthenticate.h"
@@ -48,10 +49,10 @@ void UWeb3Auth::CallJniVoidMethod(JNIEnv* Env, const jclass Class, jmethodID Met
 
 void UWeb3Auth::setOptions(FWeb3AuthOptions options) {
 	this->web3AuthOptions = options;
-	authorizeSession();
+	fetchProjectConfig();
 }
 
-void UWeb3Auth::request(FString path, FLoginParams* loginParams = NULL, TSharedPtr<FJsonObject> extraParams = NULL) {
+void UWeb3Auth::request(FString path, FLoginParams* loginParams = nullptr, TSharedPtr<FJsonObject> extraParams = nullptr) {
 	TSharedPtr<FJsonObject> paramMap = MakeShareable(new FJsonObject);
 
 
@@ -120,6 +121,23 @@ void UWeb3Auth::request(FString path, FLoginParams* loginParams = NULL, TSharedP
 		initParams->SetStringField("whiteLabel", output);
 	}
 
+	if (!web3AuthOptions.originData.IsEmpty())
+	{
+		FString jsonString;
+		TSharedRef<FJsonObject> jsonObject = MakeShared<FJsonObject>();
+
+		// Convert TMap to JsonObject
+		for (const auto& Elem : web3AuthOptions.originData)
+		{
+			jsonObject->SetStringField(Elem.Key, Elem.Value);
+		}
+
+		// Serialize JsonObject to JsonString
+		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&jsonString);
+		FJsonSerializer::Serialize(jsonObject, Writer);
+		initParams->SetStringField("originData", jsonString);
+	}
+
 	FString chainConfigOutput;
     FJsonObjectConverter::UStructToJsonObjectString(FChainConfig::StaticStruct(), &web3AuthOptions.chainConfig, chainConfigOutput);
     initParams->SetStringField("chainConfig", chainConfigOutput);
@@ -157,11 +175,11 @@ void UWeb3Auth::request(FString path, FLoginParams* loginParams = NULL, TSharedP
         params->SetStringField("curve", "ed25519");
     }
 
-	if (extraParams != NULL) {
+	if (extraParams != nullptr) {
 		params = extraParams;
 	}
 
-	if (loginParams != NULL) {
+	if (loginParams != nullptr) {
 		for (auto o : loginParams->getJsonObject().Values) {
 			params->SetField(o.Key, o.Value);
 		}
@@ -206,17 +224,17 @@ void UWeb3Auth::request(FString path, FLoginParams* loginParams = NULL, TSharedP
     }
 
     if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
-        web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v1";
+        web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v2";
     } else if (web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
         web3AuthOptions.walletSdkUrl = "https://develop-wallet.web3auth.io";
     } else {
-        web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v1";
+        web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v2";
     }
 
     createSession(json, 600, false);
 }
 
-void UWeb3Auth::launchWalletServices(FLoginParams loginParams, FChainConfig chainConfig) {
+void UWeb3Auth::launchWalletServices(FChainConfig chainConfig) {
     this->sessionId = keyStoreUtils->Get();
     if (!this->sessionId.IsEmpty()) {
         TSharedPtr <FJsonObject> paramMap = MakeShareable(new FJsonObject);
@@ -286,6 +304,23 @@ void UWeb3Auth::launchWalletServices(FLoginParams loginParams, FChainConfig chai
             initParams->SetStringField("whiteLabel", output);
         }
 
+    	if (!web3AuthOptions.originData.IsEmpty())
+    	{
+    		FString jsonString;
+    		TSharedRef<FJsonObject> jsonObject = MakeShared<FJsonObject>();
+
+    		// Convert TMap to JsonObject
+    		for (const auto& Elem : web3AuthOptions.originData)
+    		{
+    			jsonObject->SetStringField(Elem.Key, Elem.Value);
+    		}
+
+    		// Serialize JsonObject to JsonString
+    		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&jsonString);
+    		FJsonSerializer::Serialize(jsonObject, Writer);
+    		initParams->SetStringField("originData", jsonString);
+    	}
+
         FString chainConfigOutput;
         FJsonObjectConverter::UStructToJsonObjectString(FChainConfig::StaticStruct(), &chainConfig, chainConfigOutput);
         initParams->SetStringField("chainConfig", chainConfigOutput);
@@ -313,53 +348,16 @@ void UWeb3Auth::launchWalletServices(FLoginParams loginParams, FChainConfig chai
         paramMap->SetObjectField("options", initParams.ToSharedRef());
         paramMap->SetStringField("actionType", "login");
 
-        TSharedPtr <FJsonObject> params = MakeShareable(new FJsonObject);
-
-        if (loginParams.curve == FCurve::SECP256K1)
-            params->SetStringField("curve", "secp256k1");
-        else {
-            params->SetStringField("curve", "ed25519");
-        }
-
-        for (auto& o : loginParams.getJsonObject().Values) {
-            params->SetField(o.Key, o.Value);
-        }
-
-        if (loginParams.dappShare != "") {
-            params->SetStringField("dappShare", loginParams.dappShare);
-        }
-
-        switch (loginParams.mfaLevel) {
-            case FMFALevel::DEFAULT:
-                params->SetStringField("mfaLevel", "default");
-                break;
-            case FMFALevel::OPTIONAL:
-                params->SetStringField("mfaLevel", "optional");
-                break;
-            case FMFALevel::MANDATORY:
-                params->SetStringField("mfaLevel", "mandatory");
-                break;
-            case FMFALevel::NONE:
-                params->SetStringField("mfaLevel", "none");
-                break;
-        }
-
-#if !PLATFORM_ANDROID && !PLATFORM_IOS
-        params->SetStringField("redirectUrl", redirectUrl);
-#endif
-
-        paramMap->SetObjectField("params", params.ToSharedRef());
-
         FString json;
         TSharedRef <TJsonWriter<>> jsonWriter = TJsonWriterFactory<>::Create(&json);
         FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
 
         if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
-            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v1";
+            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v2";
         } else if (web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
             web3AuthOptions.walletSdkUrl = "https://develop-wallet.web3auth.io";
         } else {
-            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v1";
+            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v2";
         }
 
         createSession(json, 86400, true);
@@ -456,7 +454,8 @@ FString UWeb3Auth::startLocalWebServer() {
 
 
 bool UWeb3Auth::requestAuthCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) {
-	FString code = Request.QueryParams["b64Params"];
+	FString code = Request.QueryParams["code"];
+	code.RemoveFromStart(TEXT("b64params="));
     //UE_LOG(LogTemp, Warning, TEXT("code %s"), *code);
 	if (!code.IsEmpty()) {
 		setResultUrl(code);
@@ -705,6 +704,84 @@ void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime, bool i
     	});
 }
 
+void UWeb3Auth::fetchProjectConfig()
+{
+	FString network;
+
+	switch (web3AuthOptions.network)
+	{
+	case FNetwork::MAINNET:
+		network = "mainnet";
+		break;
+	case FNetwork::TESTNET:
+		network = "testnet";
+		break;
+	case FNetwork::CYAN:
+		network = "cyan";
+		break;
+	case FNetwork::AQUA:
+		network = "aqua";
+		break;
+	case FNetwork::SAPPHIRE_DEVNET:
+		network = "sapphire_devnet";
+		break;
+	case FNetwork::SAPPHIRE_MAINNET:
+		network = "sapphire_mainnet";
+		break;
+	}
+	
+	web3AuthApi->FetchProjectConfig(web3AuthOptions.clientId, network, true, [this](FProjectConfigResponse response)
+	{
+		TMap<FString, FString> mergedMap = mergeMaps(web3AuthOptions.originData, response.whitelist.signed_urls);
+		web3AuthOptions.originData = mergedMap;
+
+		if (!response.whitelabel.IsEmpty()) {
+			if(web3AuthOptions.whiteLabel.IsEmpty()) {
+				web3AuthOptions.whiteLabel = response.whitelabel;
+			} else {
+				FWhiteLabelData mergedResponseData = mergeWhiteLabelData(response.whitelabel);
+				web3AuthOptions.whiteLabel = mergedResponseData;
+			}
+		}
+		authorizeSession();
+	});
+}
+
+FWhiteLabelData UWeb3Auth::mergeWhiteLabelData(const FWhiteLabelData& other)
+{
+	TMap<FString, FString> mergedTheme;
+	if (web3AuthOptions.whiteLabel.theme.Num() > 0) {
+		for (const auto& Elem : web3AuthOptions.whiteLabel.theme) {
+			mergedTheme.Add(Elem.Key, Elem.Value);
+		}
+	}
+	if (other.theme.Num() > 0) {
+		for (const auto& Elem : other.theme) {
+            if (!mergedTheme.Contains(Elem.Key)) {
+                mergedTheme.Add(Elem.Key, Elem.Value.IsEmpty() ? mergedTheme.FindRef(Elem.Key) : Elem.Value);
+            }
+		}
+	}
+
+	FWhiteLabelData mergedData;
+	mergedData.appName = web3AuthOptions.whiteLabel.appName.IsEmpty() ? other.appName : web3AuthOptions.whiteLabel.appName;
+	mergedData.appUrl = web3AuthOptions.whiteLabel.appUrl.IsEmpty() ? other.appUrl : web3AuthOptions.whiteLabel.appUrl;
+	mergedData.logoLight = web3AuthOptions.whiteLabel.logoLight.IsEmpty() ? other.logoLight : web3AuthOptions.whiteLabel.logoLight;
+	mergedData.logoDark = web3AuthOptions.whiteLabel.logoDark.IsEmpty() ? other.logoDark : web3AuthOptions.whiteLabel.logoDark;
+	mergedData.useLogoLoader = web3AuthOptions.whiteLabel.useLogoLoader ? other.useLogoLoader : web3AuthOptions.whiteLabel.useLogoLoader;
+	mergedData.theme = mergedTheme;
+	return mergedData;
+}
+
+TMap<FString, FString> UWeb3Auth::mergeMaps(const TMap<FString, FString>& map1, const TMap<FString, FString>& map2)
+{
+	TMap<FString, FString> MergedMap = map1;
+	for (const auto& Elem : map2) {
+		MergedMap.Add(Elem.Key, Elem.Value);
+	}
+	return MergedMap;
+}
+
 void UWeb3Auth::handleCreateSessionResponse(FString path, FString newSessionKey, bool isWalletService) {
         TSharedPtr<FJsonObject> loginIdObject = MakeShareable(new FJsonObject);
         loginIdObject->SetStringField(TEXT("loginId"), newSessionKey);
@@ -712,6 +789,7 @@ void UWeb3Auth::handleCreateSessionResponse(FString path, FString newSessionKey,
         if(isWalletService) {
             this->sessionId = keyStoreUtils->Get();
             loginIdObject->SetStringField(TEXT("sessionId"), this->sessionId);
+            loginIdObject->SetStringField(TEXT("platform"), "unreal");
         }
 
         // Convert to Base64
