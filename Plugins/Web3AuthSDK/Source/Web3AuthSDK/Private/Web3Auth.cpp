@@ -49,11 +49,10 @@ void UWeb3Auth::CallJniVoidMethod(JNIEnv* Env, const jclass Class, jmethodID Met
 
 void UWeb3Auth::setOptions(FWeb3AuthOptions options) {
 	this->web3AuthOptions = options;
-	authorizeSession();
 	fetchProjectConfig();
 }
 
-void UWeb3Auth::request(FString path, FLoginParams* loginParams = NULL, TSharedPtr<FJsonObject> extraParams = NULL) {
+void UWeb3Auth::request(FString path, FLoginParams* loginParams = nullptr, TSharedPtr<FJsonObject> extraParams = nullptr) {
 	TSharedPtr<FJsonObject> paramMap = MakeShareable(new FJsonObject);
 
 
@@ -176,11 +175,11 @@ void UWeb3Auth::request(FString path, FLoginParams* loginParams = NULL, TSharedP
         params->SetStringField("curve", "ed25519");
     }
 
-	if (extraParams != NULL) {
+	if (extraParams != nullptr) {
 		params = extraParams;
 	}
 
-	if (loginParams != NULL) {
+	if (loginParams != nullptr) {
 		for (auto o : loginParams->getJsonObject().Values) {
 			params->SetField(o.Key, o.Value);
 		}
@@ -730,7 +729,7 @@ void UWeb3Auth::fetchProjectConfig()
 		network = "sapphire_mainnet";
 		break;
 	}
-
+	
 	web3AuthApi->FetchProjectConfig(web3AuthOptions.clientId, network, true, [this](FProjectConfigResponse response)
 	{
 		TMap<FString, FString> mergedMap = mergeMaps(web3AuthOptions.originData, response.whitelist.signed_urls);
@@ -744,6 +743,7 @@ void UWeb3Auth::fetchProjectConfig()
 				web3AuthOptions.whiteLabel = mergedResponseData;
 			}
 		}
+		authorizeSession();
 	});
 }
 
