@@ -805,13 +805,13 @@ private:
 	FString startLocalWebServer();
 
 	bool requestAuthCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete);
-	bool requestCompleteCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete);
+	static bool requestCompleteCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete);
 
 	void authorizeSession();
 	void sessionTimeout();
 	void createSession(const FString& jsonData, int32 sessionTime, bool isWalletService);
-    void handleCreateSessionResponse(FString path, FString newSessionKey, bool isWalletService);
-    void fetchProjectConfig();
+  void handleCreateSessionResponse(const FString& path, const FString& newSessionKey, bool isWalletService);
+  void fetchProjectConfig();
 	FWhiteLabelData mergeWhiteLabelData(const FWhiteLabelData& other);
 	static TMap<FString, FString> mergeMaps(const TMap<FString, FString>& map1, const TMap<FString, FString>& map2);
 };
