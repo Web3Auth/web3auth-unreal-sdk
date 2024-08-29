@@ -3,32 +3,27 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
-#include "Json.h"
 #include "JsonUtilities.h"
 
-#include "Misc/Base64.h"
 #include "ECCrypto.h"
-#include "Web3AuthApi.h"
 #include "KeyStoreUtils.h"
+#include "Web3AuthApi.h"
+#include "Misc/Base64.h"
+#include "Dom/JsonValue.h"
 
 #include "Containers/UnrealString.h"
-#include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
 
-#include "Runtime/Online/HTTPServer/Public/HttpPath.h"
 #include "Runtime/Online/HTTPServer/Public/IHttpRouter.h"
-#include "Runtime/Online/HTTPServer/Public/HttpServerHttpVersion.h"
-#include "Runtime/Online/HTTPServer/Public/HttpServerModule.h"
-#include "Runtime/Online/HTTPServer/Public/HttpServerResponse.h"
-
-#include "Web3AuthError.h"
-#include "Web3Auth.generated.h"
+#include "HttpServerModule.h"
 
 #if PLATFORM_ANDROID
 #include "../../../Launch/Public/Android/AndroidJNI.h"
 #include "Android/AndroidApplication.h"
 #endif
 
+#include "Web3Auth.generated.h"
 
 UENUM(BlueprintType)
 enum class FDisplay : uint8
@@ -108,6 +103,18 @@ enum class FMFALevel : uint8
 	OPTIONAL,
 	MANDATORY,
 	NONE
+};
+
+UENUM(BlueprintType)
+enum class FLanguage : uint8
+{
+	en, de, ja, ko, zh, es, fr, pt, nl, tr
+};
+
+UENUM(BlueprintType)
+enum class FThemeModes : uint8
+{
+	light, dark
 };
 
 UENUM(BlueprintType)
@@ -465,6 +472,54 @@ struct FUserInfo
     			&& oAuthAccessToken.IsEmpty();
     }
 
+	FString ToString() const {
+		return FString::Printf(TEXT("email: %s, name: %s, profileImage: %s, aggregateVerifier: %s, verifier: %s, verifierId: %s, typeOfLogin: %s, dappShare: %s, idToken: %s, oAuthIdToken: %s, oAuthAccessToken: %s, isMfaEnabled: %d"),
+			*email, *name, *profileImage, *aggregateVerifier, *verifier, *verifierId, *typeOfLogin, *dappShare, *idToken, *oAuthIdToken, *oAuthAccessToken, isMfaEnabled);
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FWhiteLabelData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FString appName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FString logoLight;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FString logoDark;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FLanguage defaultLanguage = FLanguage::en;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FThemeModes mode;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TMap<FString, FString> theme;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	FString appUrl;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    	bool useLogoLoader;
+
+	FWhiteLabelData() {};
+
+	void operator= (const FWhiteLabelData& other) {
+		appName = other.appName;
+		logoLight = other.logoLight;
+		logoDark = other.logoDark;
+		defaultLanguage = other.defaultLanguage;
+		mode = other.mode;
+		theme = other.theme;
+		appUrl = other.appUrl;
+		useLogoLoader = other.useLogoLoader;
+	}
+
 };
 
 USTRUCT(BlueprintType)
@@ -663,6 +718,7 @@ struct FWeb3AuthOptions
         chainConfig = other.chainConfig;
 		originData = other.originData;
 	}
+
 };
 
 USTRUCT(BlueprintType)
@@ -739,6 +795,8 @@ protected:
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     virtual void Deinitialize() override;
 public:
+	UWeb3Auth();
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FWeb3AuthResponse web3AuthResponse;
 
@@ -754,11 +812,14 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void processLogout();
 
-   UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable)
         void enableMFA(FLoginParams loginParams);
 
     UFUNCTION(BlueprintCallable)
         void launchWalletServices(FChainConfig chainConfig);
+
+	UFUNCTION(BlueprintCallable)
+	void request(FChainConfig chainConfig, FString method, TArray<FString> requestParams, FString path = "wallet/request");
 
 	UFUNCTION(BlueprintCallable)
 		void setResultUrl(FString code);
@@ -789,11 +850,20 @@ public:
     UFUNCTION(BlueprintCallable)
     		FUserInfo getUserInfo();
 
+	UFUNCTION(BlueprintCallable)
+	static void setSignResponse(const FSignResponse Response);
+
+	UFUNCTION(BlueprintPure)
+	static FSignResponse getSignResponse();
+
     #if PLATFORM_IOS
     static void callBackFromWebAuthenticateIOS(NSString* sResult);
     #endif
 private:
-	void request(FString  path, FLoginParams* loginParams, TSharedPtr<FJsonObject> extraParam);
+	void processRequest(FString  path, FLoginParams* loginParams, TSharedPtr<FJsonObject> extraParam);
+
+	bool bIsRequestResponse;
+	static FSignResponse signResponse;
 
 	template <typename StructType>
 	void GetJsonStringFromStruct(StructType FilledStruct, FString& StringOutput);
@@ -805,12 +875,12 @@ private:
 	FString startLocalWebServer();
 
 	bool requestAuthCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete);
-	bool requestCompleteCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete);
+	static bool requestCompleteCallback(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete);
 
 	void authorizeSession();
 	void sessionTimeout();
 	void createSession(const FString& jsonData, int32 sessionTime, bool isWalletService);
-    void handleCreateSessionResponse(FString path, FString newSessionKey, bool isWalletService);
+void handleCreateSessionResponse(const FString& path, const FString& newSessionKey, bool isWalletService);
     void fetchProjectConfig();
 	FWhiteLabelData mergeWhiteLabelData(const FWhiteLabelData& other);
 	static TMap<FString, FString> mergeMaps(const TMap<FString, FString>& map1, const TMap<FString, FString>& map2);

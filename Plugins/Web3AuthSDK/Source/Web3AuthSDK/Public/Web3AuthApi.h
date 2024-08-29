@@ -142,6 +142,29 @@ struct FSessionResponse
     FString sessionId;
 };
 
+USTRUCT(BlueprintType)
+struct FSignResponse
+{
+    GENERATED_BODY()
+
+public:
+    UPROPERTY()
+    bool success;
+
+    UPROPERTY()
+    FString result;
+
+    UPROPERTY()
+    FString error;
+
+    FSignResponse() {};
+
+    FString ToString() const {
+        return FString::Printf(TEXT("success: %s, result: %s, error: %s"),
+            success ? TEXT("true") : TEXT("false"), *result, *error);
+    }
+};
+
 UCLASS()
 class WEB3AUTHSDK_API UWeb3AuthApi : public UObject
 {
