@@ -553,7 +553,7 @@ void UWeb3Auth::request(FChainConfig chainConfig, FString method, TArray<FString
 
 		web3AuthApi->CreateSession(request, [this, newSessionKey, method, requestParams, path](FString response)
 			{
-			UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response);
+			//UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response);
 
 			TSharedPtr<FJsonObject> requestData = MakeShared<FJsonObject>();
 			requestData->SetStringField(TEXT("method"), method);
@@ -648,7 +648,7 @@ void UWeb3Auth::setResultUrl(FString hash) {
 				signResponse.success = jsonObject->GetBoolField(TEXT("success"));
 				signResponse.result = jsonObject->GetStringField(TEXT("result"));
 				signResponse.error = jsonObject->GetStringField(TEXT("error"));
-				UE_LOG(LogTemp, Warning, TEXT("signResponse - success: %d, result: %s, error: %s"), signResponse.success, *signResponse.result, *signResponse.error);
+				//UE_LOG(LogTemp, Warning, TEXT("signResponse - success: %d, result: %s, error: %s"), signResponse.success, *signResponse.result, *signResponse.error);
 				setSignResponse(signResponse);
 			}
 		}
@@ -906,7 +906,7 @@ void UWeb3Auth::sessionTimeout() {
 
 				web3AuthApi->Logout(request, [this](const FString& response)
 					{
-						UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response);
+						//UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response);
 						(void) this->logoutEvent.ExecuteIfBound();
 						this->sessionId = FString();
                         keyStoreUtils->Clear();
@@ -955,7 +955,7 @@ void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime, bool i
 
     web3AuthApi->CreateSession(request, [this, newSessionKey, isWalletService](const FString& response)
     	{
-    	    UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response);
+    	    //UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response);
     	    if(isWalletService) {
                 handleCreateSessionResponse("wallet", newSessionKey, isWalletService);
             } else {
