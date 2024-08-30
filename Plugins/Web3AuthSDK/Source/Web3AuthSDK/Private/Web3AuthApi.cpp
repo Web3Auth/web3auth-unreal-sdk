@@ -37,7 +37,7 @@ void UWeb3AuthApi::AuthorizeSession(const FString& key, const TFunction<void(FSt
     request->OnProcessRequestComplete().BindLambda([callback](FHttpRequestPtr request, FHttpResponsePtr response, bool success) {
         FString response_string = response->GetContentAsString();
         FString url = request->GetURL();
-        UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response_string);
+        //UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response_string);
 
         if (success && response->GetResponseCode() == EHttpResponseCodes::Ok) {
             FStoreApiResponse api_response;
@@ -69,7 +69,7 @@ void UWeb3AuthApi::Logout(const FLogoutApiRequest logoutApiRequest, const TFunct
 
     request->OnProcessRequestComplete().BindLambda([callback](FHttpRequestPtr request, FHttpResponsePtr response, bool success) {
         FString response_string = response->GetContentAsString();
-        UE_LOG(LogTemp, Log, TEXT("Response: %s "), *response_string);
+        //UE_LOG(LogTemp, Log, TEXT("Response: %s "), *response_string);
         UE_LOG(LogTemp, Log, TEXT("Status code: %d "), response->GetResponseCode());
 
         if (success && response->GetResponseCode() == EHttpResponseCodes::Created) {
@@ -96,7 +96,7 @@ void UWeb3AuthApi::CreateSession(const FLogoutApiRequest logoutApiRequest, const
 
     request->OnProcessRequestComplete().BindLambda([callback](FHttpRequestPtr request, FHttpResponsePtr response, bool success) {
         FString response_string = response->GetContentAsString();
-        UE_LOG(LogTemp, Log, TEXT("Response: %s "), *response_string);
+        //UE_LOG(LogTemp, Log, TEXT("Response: %s "), *response_string);
         UE_LOG(LogTemp, Log, TEXT("Status code: %d "), response->GetResponseCode());
 
         if (success && response->GetResponseCode() == EHttpResponseCodes::Created) {
