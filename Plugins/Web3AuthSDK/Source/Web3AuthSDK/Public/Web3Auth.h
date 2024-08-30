@@ -106,18 +106,6 @@ enum class FMFALevel : uint8
 };
 
 UENUM(BlueprintType)
-enum class FLanguage : uint8
-{
-	en, de, ja, ko, zh, es, fr, pt, nl, tr
-};
-
-UENUM(BlueprintType)
-enum class FThemeModes : uint8
-{
-	light, dark
-};
-
-UENUM(BlueprintType)
 enum class FNetwork : uint8
 {
 	MAINNET = 0, TESTNET = 1, CYAN = 2, AQUA = 3, SAPPHIRE_DEVNET = 4, SAPPHIRE_MAINNET = 5
@@ -476,50 +464,6 @@ struct FUserInfo
 		return FString::Printf(TEXT("email: %s, name: %s, profileImage: %s, aggregateVerifier: %s, verifier: %s, verifierId: %s, typeOfLogin: %s, dappShare: %s, idToken: %s, oAuthIdToken: %s, oAuthAccessToken: %s, isMfaEnabled: %d"),
 			*email, *name, *profileImage, *aggregateVerifier, *verifier, *verifierId, *typeOfLogin, *dappShare, *idToken, *oAuthIdToken, *oAuthAccessToken, isMfaEnabled);
 	}
-};
-
-USTRUCT(BlueprintType)
-struct FWhiteLabelData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString appName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString logoLight;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString logoDark;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    	FLanguage defaultLanguage = FLanguage::en;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    	FThemeModes mode;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		TMap<FString, FString> theme;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    	FString appUrl;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    	bool useLogoLoader;
-
-	FWhiteLabelData() {};
-
-	void operator= (const FWhiteLabelData& other) {
-		appName = other.appName;
-		logoLight = other.logoLight;
-		logoDark = other.logoDark;
-		defaultLanguage = other.defaultLanguage;
-		mode = other.mode;
-		theme = other.theme;
-		appUrl = other.appUrl;
-		useLogoLoader = other.useLogoLoader;
-	}
-
 };
 
 USTRUCT(BlueprintType)

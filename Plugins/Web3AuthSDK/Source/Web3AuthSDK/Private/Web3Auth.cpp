@@ -660,7 +660,6 @@ void UWeb3Auth::setResultUrl(FString hash) {
 		return;
 	}
 
-    FSessionResponse response;
     TSharedPtr<FJsonObject> jsonObject;
     TSharedRef<TJsonReader<>> reader = TJsonReaderFactory<>::Create(substringBeforeBrace);
     if (FJsonSerializer::Deserialize(reader, jsonObject) && jsonObject.IsValid())
@@ -698,10 +697,11 @@ FString UWeb3Auth::startLocalWebServer() {
 	if (httpRouter.IsValid()) {
 
 		auto x = httpRouter->BindRoute(FHttpPath(TEXT("/auth")), EHttpServerRequestVerbs::VERB_GET,
-			FHttpRequestHandler::CreateLambda([this](const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) { return requestAuthCallback(Request, OnComplete); }));
+			[this](const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) { return requestAuthCallback(Request, OnComplete); });
 
-		auto y = httpRouter->BindRoute(FHttpPath(TEXT("/complete")), EHttpServerRequestVerbs::VERB_GET,
-			FHttpRequestHandler::CreateLambda([this](const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) { return requestCompleteCallback(Request, OnComplete); }));
+
+        auto y = httpRouter->BindRoute(FHttpPath(TEXT("/complete")), EHttpServerRequestVerbs::VERB_GET,
+			[this](const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) { return requestCompleteCallback(Request, OnComplete); });
 
 		httpRoutes.Add(TPairInitializer<TSharedPtr<IHttpRouter>, FHttpRouteHandle>(httpRouter, x));
 		httpRoutes.Add(TPairInitializer<TSharedPtr<IHttpRouter>, FHttpRouteHandle>(httpRouter, y));
@@ -761,7 +761,7 @@ bool UWeb3Auth::requestCompleteCallback(const FHttpServerRequest& Request, const
 			if (window.location.hash.trim() == "") {
 				document.querySelector("#error").style.display="flex";
 			} else {
-				fetch(`https://${window.location.host}/auth/?code=${window.location.hash.slice(1,window.location.hash.length)}`).then(function(response) {
+				fetch(`http://${window.location.host}/auth/?code=${window.location.hash.slice(1,window.location.hash.length)}`).then(function(response) {
 					console.log(response);
 					document.querySelector("#success").style.display="flex";
 				}).catch(function(error) {
