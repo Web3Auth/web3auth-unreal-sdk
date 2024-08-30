@@ -1,6 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 #include "Web3Auth.h"
 #include "Web3AuthError.h"
+#include "DynamicMesh/DynamicMesh3.h"
 
 #if PLATFORM_IOS
 #include "IOS/ObjC/WebAuthenticate.h"
@@ -55,7 +56,7 @@ FSignResponse UWeb3Auth::signResponse;
 
 void UWeb3Auth::setOptions(FWeb3AuthOptions options) {
 	this->web3AuthOptions = options;
-	authorizeSession();
+	fetchProjectConfig();
 }
 
 FSignResponse UWeb3Auth::getSignResponse()
@@ -66,7 +67,7 @@ FSignResponse UWeb3Auth::getSignResponse()
 
 void UWeb3Auth::setSignResponse(const FSignResponse response)
 {
-	signResponse = response;	
+	signResponse = response;
 }
 
 void UWeb3Auth::processRequest(FString path, FLoginParams* loginParams = nullptr, TSharedPtr<FJsonObject> extraParams = nullptr) {
@@ -138,6 +139,23 @@ void UWeb3Auth::processRequest(FString path, FLoginParams* loginParams = nullptr
 		initParams->SetStringField("whiteLabel", output);
 	}
 
+	if (!web3AuthOptions.originData.IsEmpty())
+	{
+		FString jsonString;
+		TSharedRef<FJsonObject> jsonObject = MakeShared<FJsonObject>();
+
+		// Convert TMap to JsonObject
+		for (const auto& Elem : web3AuthOptions.originData)
+		{
+			jsonObject->SetStringField(Elem.Key, Elem.Value);
+		}
+
+		// Serialize JsonObject to JsonString
+		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&jsonString);
+		FJsonSerializer::Serialize(jsonObject, Writer);
+		initParams->SetStringField("originData", jsonString);
+	}
+
 	FString chainConfigOutput;
     FJsonObjectConverter::UStructToJsonObjectString(FChainConfig::StaticStruct(), &web3AuthOptions.chainConfig, chainConfigOutput);
     initParams->SetStringField("chainConfig", chainConfigOutput);
@@ -175,11 +193,11 @@ void UWeb3Auth::processRequest(FString path, FLoginParams* loginParams = nullptr
         params->SetStringField("curve", "ed25519");
     }
 
-	if (extraParams !=  nullptr) {
+	if (extraParams != nullptr) {
 		params = extraParams;
 	}
 
-	if (loginParams !=  nullptr) {
+	if (loginParams != nullptr) {
 		for (auto o : loginParams->getJsonObject().Values) {
 			params->SetField(o.Key, o.Value);
 		}
@@ -303,6 +321,23 @@ void UWeb3Auth::launchWalletServices(FChainConfig chainConfig) {
 
             initParams->SetStringField("whiteLabel", output);
         }
+
+    	if (!web3AuthOptions.originData.IsEmpty())
+    	{
+    		FString jsonString;
+    		TSharedRef<FJsonObject> jsonObject = MakeShared<FJsonObject>();
+
+    		// Convert TMap to JsonObject
+    		for (const auto& Elem : web3AuthOptions.originData)
+    		{
+    			jsonObject->SetStringField(Elem.Key, Elem.Value);
+    		}
+
+    		// Serialize JsonObject to JsonString
+    		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&jsonString);
+    		FJsonSerializer::Serialize(jsonObject, Writer);
+    		initParams->SetStringField("originData", jsonString);
+    	}
 
         FString chainConfigOutput;
         FJsonObjectConverter::UStructToJsonObjectString(FChainConfig::StaticStruct(), &chainConfig, chainConfigOutput);
@@ -486,7 +521,7 @@ void UWeb3Auth::request(FChainConfig chainConfig, FString method, TArray<FString
 
 		FString macKeyHex = FString();
 		FString encryptedData = crypto->encrypt(json, newSessionKey, ephemPublicKey, ivKey, macKeyHex);
- 
+
 		FString finalMac = crypto->getMac(encryptedData, ephemPublicKey, ivKey, macKeyHex);
 
 		if (!crypto->hmacSha256Verify(macKeyHex, crypto->getCombinedData(encryptedData, ephemPublicKey, ivKey), finalMac))
@@ -560,7 +595,7 @@ void UWeb3Auth::request(FChainConfig chainConfig, FString method, TArray<FString
 			// Build the URI
 			FString url = web3AuthOptions.walletSdkUrl + "/" + path + "#" + "b64Params=" + encode;
 			bIsRequestResponse = true;
-			
+
 			#if PLATFORM_ANDROID
 			thiz_instance = this;
 			if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true))
@@ -625,7 +660,6 @@ void UWeb3Auth::setResultUrl(FString hash) {
 		return;
 	}
 
-    FSessionResponse response;
     TSharedPtr<FJsonObject> jsonObject;
     TSharedRef<TJsonReader<>> reader = TJsonReaderFactory<>::Create(substringBeforeBrace);
     if (FJsonSerializer::Deserialize(reader, jsonObject) && jsonObject.IsValid())
@@ -661,12 +695,13 @@ FString UWeb3Auth::startLocalWebServer() {
 	}
 
 	if (httpRouter.IsValid()) {
-		
-		auto x = httpRouter->BindRoute(FHttpPath(TEXT("/auth")), EHttpServerRequestVerbs::VERB_GET,
-			FHttpRequestHandler::CreateLambda([this](const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) { return requestAuthCallback(Request, OnComplete); }));
 
-		auto y = httpRouter->BindRoute(FHttpPath(TEXT("/complete")), EHttpServerRequestVerbs::VERB_GET,
-			FHttpRequestHandler::CreateLambda([this](const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) { return requestCompleteCallback(Request, OnComplete); }));
+		auto x = httpRouter->BindRoute(FHttpPath(TEXT("/auth")), EHttpServerRequestVerbs::VERB_GET,
+			[this](const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) { return requestAuthCallback(Request, OnComplete); });
+
+
+        auto y = httpRouter->BindRoute(FHttpPath(TEXT("/complete")), EHttpServerRequestVerbs::VERB_GET,
+			[this](const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) { return requestCompleteCallback(Request, OnComplete); });
 
 		httpRoutes.Add(TPairInitializer<TSharedPtr<IHttpRouter>, FHttpRouteHandle>(httpRouter, x));
 		httpRoutes.Add(TPairInitializer<TSharedPtr<IHttpRouter>, FHttpRouteHandle>(httpRouter, y));
@@ -726,7 +761,7 @@ bool UWeb3Auth::requestCompleteCallback(const FHttpServerRequest& Request, const
 			if (window.location.hash.trim() == "") {
 				document.querySelector("#error").style.display="flex";
 			} else {
-				fetch(`https://${window.location.host}/auth/?code=${window.location.hash.slice(1,window.location.hash.length)}`).then(function(response) {
+				fetch(`http://${window.location.host}/auth/?code=${window.location.hash.slice(1,window.location.hash.length)}`).then(function(response) {
 					console.log(response);
 					document.querySelector("#success").style.display="flex";
 				}).catch(function(error) {
@@ -826,7 +861,7 @@ void UWeb3Auth::authorizeSession() {
 					if (web3AuthResponse.error != "") {
 						return;
 					}
-				
+
 					(void) this->loginEvent.ExecuteIfBound(web3AuthResponse);
           (void) this->mfaEvent.ExecuteIfBound(true);
 				}
@@ -927,6 +962,84 @@ void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime, bool i
                 handleCreateSessionResponse("start", newSessionKey, isWalletService);
             }
     	});
+}
+
+void UWeb3Auth::fetchProjectConfig()
+{
+	FString network;
+
+	switch (web3AuthOptions.network)
+	{
+	case FNetwork::MAINNET:
+		network = "mainnet";
+		break;
+	case FNetwork::TESTNET:
+		network = "testnet";
+		break;
+	case FNetwork::CYAN:
+		network = "cyan";
+		break;
+	case FNetwork::AQUA:
+		network = "aqua";
+		break;
+	case FNetwork::SAPPHIRE_DEVNET:
+		network = "sapphire_devnet";
+		break;
+	case FNetwork::SAPPHIRE_MAINNET:
+		network = "sapphire_mainnet";
+		break;
+	}
+
+	web3AuthApi->FetchProjectConfig(web3AuthOptions.clientId, network, true, [this](FProjectConfigResponse response)
+	{
+		TMap<FString, FString> mergedMap = mergeMaps(web3AuthOptions.originData, response.whitelist.signed_urls);
+		web3AuthOptions.originData = mergedMap;
+
+		if (!response.whitelabel.IsEmpty()) {
+			if(web3AuthOptions.whiteLabel.IsEmpty()) {
+				web3AuthOptions.whiteLabel = response.whitelabel;
+			} else {
+				FWhiteLabelData mergedResponseData = mergeWhiteLabelData(response.whitelabel);
+				web3AuthOptions.whiteLabel = mergedResponseData;
+			}
+		}
+		authorizeSession();
+	});
+}
+
+FWhiteLabelData UWeb3Auth::mergeWhiteLabelData(const FWhiteLabelData& other)
+{
+	TMap<FString, FString> mergedTheme;
+	if (web3AuthOptions.whiteLabel.theme.Num() > 0) {
+		for (const auto& Elem : web3AuthOptions.whiteLabel.theme) {
+			mergedTheme.Add(Elem.Key, Elem.Value);
+		}
+	}
+	if (other.theme.Num() > 0) {
+		for (const auto& Elem : other.theme) {
+            if (!mergedTheme.Contains(Elem.Key)) {
+                mergedTheme.Add(Elem.Key, Elem.Value.IsEmpty() ? mergedTheme.FindRef(Elem.Key) : Elem.Value);
+            }
+		}
+	}
+
+	FWhiteLabelData mergedData;
+	mergedData.appName = web3AuthOptions.whiteLabel.appName.IsEmpty() ? other.appName : web3AuthOptions.whiteLabel.appName;
+	mergedData.appUrl = web3AuthOptions.whiteLabel.appUrl.IsEmpty() ? other.appUrl : web3AuthOptions.whiteLabel.appUrl;
+	mergedData.logoLight = web3AuthOptions.whiteLabel.logoLight.IsEmpty() ? other.logoLight : web3AuthOptions.whiteLabel.logoLight;
+	mergedData.logoDark = web3AuthOptions.whiteLabel.logoDark.IsEmpty() ? other.logoDark : web3AuthOptions.whiteLabel.logoDark;
+	mergedData.useLogoLoader = web3AuthOptions.whiteLabel.useLogoLoader ? other.useLogoLoader : web3AuthOptions.whiteLabel.useLogoLoader;
+	mergedData.theme = mergedTheme;
+	return mergedData;
+}
+
+TMap<FString, FString> UWeb3Auth::mergeMaps(const TMap<FString, FString>& map1, const TMap<FString, FString>& map2)
+{
+	TMap<FString, FString> MergedMap = map1;
+	for (const auto& Elem : map2) {
+		MergedMap.Add(Elem.Key, Elem.Value);
+	}
+	return MergedMap;
 }
 
 void UWeb3Auth::handleCreateSessionResponse(const FString& path, const FString& newSessionKey, bool isWalletService) {

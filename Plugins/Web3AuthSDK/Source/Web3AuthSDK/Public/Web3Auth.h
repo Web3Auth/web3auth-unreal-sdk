@@ -106,18 +106,6 @@ enum class FMFALevel : uint8
 };
 
 UENUM(BlueprintType)
-enum class FLanguage : uint8
-{
-	en, de, ja, ko, zh, es, fr, pt, nl, tr
-};
-
-UENUM(BlueprintType)
-enum class FThemeModes : uint8
-{
-	light, dark
-};
-
-UENUM(BlueprintType)
 enum class FNetwork : uint8
 {
 	MAINNET = 0, TESTNET = 1, CYAN = 2, AQUA = 3, SAPPHIRE_DEVNET = 4, SAPPHIRE_MAINNET = 5
@@ -479,50 +467,6 @@ struct FUserInfo
 };
 
 USTRUCT(BlueprintType)
-struct FWhiteLabelData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString appName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString logoLight;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString logoDark;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    	FLanguage defaultLanguage = FLanguage::en;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    	FThemeModes mode;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		TMap<FString, FString> theme;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    	FString appUrl;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    	bool useLogoLoader;
-
-	FWhiteLabelData() {};
-
-	void operator= (const FWhiteLabelData& other) {
-		appName = other.appName;
-		logoLight = other.logoLight;
-		logoDark = other.logoDark;
-		defaultLanguage = other.defaultLanguage;
-		mode = other.mode;
-		theme = other.theme;
-		appUrl = other.appUrl;
-		useLogoLoader = other.useLogoLoader;
-	}
-
-};
-
-USTRUCT(BlueprintType)
 struct FChainConfig
 {
     GENERATED_BODY()
@@ -697,6 +641,9 @@ struct FWeb3AuthOptions
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     	FChainConfig chainConfig;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TMap<FString, FString> originData;
+
 	FWeb3AuthOptions() {};
 
 	void operator= (const FWeb3AuthOptions& other) {
@@ -713,6 +660,7 @@ struct FWeb3AuthOptions
         mfaSettings = other.mfaSettings;
         sessionTime = other.sessionTime;
         chainConfig = other.chainConfig;
+		originData = other.originData;
 	}
 
 };
@@ -792,7 +740,7 @@ protected:
     virtual void Deinitialize() override;
 public:
 	UWeb3Auth();
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FWeb3AuthResponse web3AuthResponse;
 
@@ -816,7 +764,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void request(FChainConfig chainConfig, FString method, TArray<FString> requestParams, FString path = "wallet/request");
-	
+
 	UFUNCTION(BlueprintCallable)
 		void setResultUrl(FString code);
 
@@ -857,10 +805,10 @@ public:
     #endif
 private:
 	void processRequest(FString  path, FLoginParams* loginParams, TSharedPtr<FJsonObject> extraParam);
-	
+
 	bool bIsRequestResponse;
 	static FSignResponse signResponse;
-	
+
 	template <typename StructType>
 	void GetJsonStringFromStruct(StructType FilledStruct, FString& StringOutput);
 
@@ -876,5 +824,8 @@ private:
 	void authorizeSession();
 	void sessionTimeout();
 	void createSession(const FString& jsonData, int32 sessionTime, bool isWalletService);
-    void handleCreateSessionResponse(const FString& path, const FString& newSessionKey, bool isWalletService);
+void handleCreateSessionResponse(const FString& path, const FString& newSessionKey, bool isWalletService);
+    void fetchProjectConfig();
+	FWhiteLabelData mergeWhiteLabelData(const FWhiteLabelData& other);
+	static TMap<FString, FString> mergeMaps(const TMap<FString, FString>& map1, const TMap<FString, FString>& map2);
 };
