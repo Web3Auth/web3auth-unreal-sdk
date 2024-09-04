@@ -233,20 +233,20 @@ void UWeb3Auth::processRequest(FString path, FLoginParams* loginParams = nullptr
 	FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
 
 	if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
-        web3AuthOptions.sdkUrl = "https://staging-auth.web3auth.io/v8";
+        web3AuthOptions.sdkUrl = "https://staging-auth.web3auth.io/v9";
     }
     else if(web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
         web3AuthOptions.sdkUrl = "https://develop-auth.web3auth.io";
     } else {
-        web3AuthOptions.sdkUrl = "https://auth.web3auth.io/v8";
+        web3AuthOptions.sdkUrl = "https://auth.web3auth.io/v9";
     }
 
     if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
-        web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v2";
+        web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v3";
     } else if (web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
         web3AuthOptions.walletSdkUrl = "https://develop-wallet.web3auth.io";
     } else {
-        web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v2";
+        web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v3";
     }
 
     createSession(json, 600, false);
