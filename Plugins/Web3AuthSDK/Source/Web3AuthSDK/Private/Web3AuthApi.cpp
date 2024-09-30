@@ -23,15 +23,19 @@ UWeb3AuthApi* UWeb3AuthApi::GetInstance()
 }
 
 
-void UWeb3AuthApi::AuthorizeSession(const FString& key, const TFunction<void(FStoreApiResponse)> callback)
+void UWeb3AuthApi::AuthorizeSession(const FString& key, const FString& origin, const TFunction<void(FStoreApiResponse)> callback)
 {
     TSharedRef<IHttpRequest> request = FHttpModule::Get().CreateRequest();
     request->SetVerb(TEXT("POST"));
-    request->SetURL(TEXT("https://session.web3auth.io/store/get?key=" + key));
-    
+    request->SetURL(TEXT("https://session.web3auth.io/v2/store/get?key=" + key));
+
+    //UELog(LogTemp, Log, TEXT("key: %s"), *key);
+    //UELog(LogTemp, Log, TEXT("origin: %s"), *origin);
     FString FormString = "key=" + key;
+    //UE_LOG(LogTemp, Log, TEXT("FormString: %s"), *FormString);
 
     request->SetHeader(TEXT("Content-Type"), TEXT("application/x-www-form-urlencoded"));
+    request->SetHeader(TEXT("origin"), origin);
     request->SetContentAsString(FormString);
 
     request->OnProcessRequestComplete().BindLambda([callback](FHttpRequestPtr request, FHttpResponsePtr response, bool success) {
@@ -60,7 +64,7 @@ void UWeb3AuthApi::Logout(const FLogoutApiRequest logoutApiRequest, const TFunct
 {
     TSharedRef<IHttpRequest> request = FHttpModule::Get().CreateRequest();
     request->SetVerb(TEXT("POST"));
-    request->SetURL(TEXT("https://session.web3auth.io/store/set"));
+    request->SetURL(TEXT("https://session.web3auth.io/v2/store/set"));
 
     FString FormString = "key=" + logoutApiRequest.key + "&data=" + FGenericPlatformHttp::UrlEncode(logoutApiRequest.data) + "&signature=" + logoutApiRequest.signature + "&timeout=" + FString::FromInt(logoutApiRequest.timeout);
 
@@ -87,7 +91,7 @@ void UWeb3AuthApi::CreateSession(const FLogoutApiRequest logoutApiRequest, const
 {
     TSharedRef<IHttpRequest> request = FHttpModule::Get().CreateRequest();
     request->SetVerb(TEXT("POST"));
-    request->SetURL(TEXT("https://session.web3auth.io/store/set"));
+    request->SetURL(TEXT("https://session.web3auth.io/v2/store/set"));
 
     FString FormString = "key=" + logoutApiRequest.key + "&data=" + FGenericPlatformHttp::UrlEncode(logoutApiRequest.data) + "&signature=" + logoutApiRequest.signature + "&timeout=" + FString::FromInt(logoutApiRequest.timeout);
 
