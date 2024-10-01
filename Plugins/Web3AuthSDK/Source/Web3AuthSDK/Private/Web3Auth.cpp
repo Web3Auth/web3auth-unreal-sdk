@@ -379,11 +379,11 @@ void UWeb3Auth::launchWalletServices(FChainConfig chainConfig) {
         FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
 
         if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
-            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v2";
+            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v3";
         } else if (web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
             web3AuthOptions.walletSdkUrl = "https://develop-wallet.web3auth.io";
         } else {
-            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v2";
+            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v3";
         }
 
         createSession(json, 86400, true, "*");
@@ -519,11 +519,11 @@ void UWeb3Auth::request(FChainConfig chainConfig, FString method, TArray<FString
         FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
 
         if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
-            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v2";
+            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v3";
         } else if (web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
             web3AuthOptions.walletSdkUrl = "https://develop-wallet.web3auth.io";
         } else {
-            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v2";
+            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v3";
         }
 
         //createSession(json, 86400, true);
@@ -681,6 +681,7 @@ void UWeb3Auth::setResultUrl(FString hash) {
         this->sessionId = *response.sessionId;
     }
 
+    //UE_LOG(LogTemp, Warning, TEXT("authorizeSession called: Session-ID: %s"), "authorizeSession");
     authorizeSession();
 }
 
@@ -839,9 +840,12 @@ FUserInfo UWeb3Auth::getUserInfo() {
 void UWeb3Auth::authorizeSession() {
     this->sessionId = keyStoreUtils->GetSessionId();
 	if (!this->sessionId.IsEmpty()) {
+        //UE_LOG(LogTemp, Warning, TEXT("Inside  authorizeSession Session-ID: %s"), *this->sessionId);
 		FString pubKey = crypto->generatePublicKey(this->sessionId);
 		FString session = this->sessionId;
         FString origin = this->redirecturl;
+        //UE_LOG(LogTemp, Warning, TEXT("In authorizeSession Session-ID: %s"), *session);
+        //UE_LOG(LogTemp, Warning, TEXT("In authorizeSession Origin: %s"), *origin);
         if(origin.IsEmpty()) {
             origin = keyStoreUtils->GetRedirectUrl();
         }
