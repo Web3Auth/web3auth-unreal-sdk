@@ -131,6 +131,9 @@ struct FLogoutApiRequest
 
     UPROPERTY()
         int32 timeout;
+
+    UPROPERTY()
+        FString allowedOrigin;
 };
 
 USTRUCT()
@@ -174,7 +177,7 @@ public:
     static UWeb3AuthApi* GetInstance();
 
     // Authorize the user session
-    void AuthorizeSession(const FString& key, const TFunction<void(FStoreApiResponse)> callback);
+    void AuthorizeSession(const FString& key, const FString& origin, const TFunction<void(FStoreApiResponse)> callback);
 
     // Logout the user session
     void Logout(const FLogoutApiRequest logoutApiRequest, const TFunction<void(FString)> callback);

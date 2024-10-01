@@ -12,6 +12,9 @@ class UWeb3StorageAdapter : public USaveGame
 public:
     UPROPERTY(VisibleAnywhere, Category = Basic)
         FString sessionId;
+
+    UPROPERTY(VisibleAnywhere, Category = Basic)
+        FString redirectUrl;
 };
 
 UCLASS()
@@ -24,8 +27,9 @@ public:
     UKeyStoreUtils();
     ~UKeyStoreUtils();
 
-    void Assign(FString value);
-    FString Get();
+    void Assign(FString sessionId, FString redirectUrl);
+    FString GetSessionId();
+    FString GetRedirectUrl();
     void Clear();
 };
 

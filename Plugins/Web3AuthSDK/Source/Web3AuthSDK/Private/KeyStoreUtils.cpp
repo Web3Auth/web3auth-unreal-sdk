@@ -6,17 +6,18 @@ UKeyStoreUtils::UKeyStoreUtils() {
 
 UKeyStoreUtils::~UKeyStoreUtils() {}
 
-void UKeyStoreUtils::Assign(FString value) {
+void UKeyStoreUtils::Assign(FString sessionId, FString redirectUrl) {
     UWeb3StorageAdapter* saveGameInstance = Cast<UWeb3StorageAdapter>(UGameplayStatics::CreateSaveGameObject(UWeb3StorageAdapter::StaticClass()));
 
     if (saveGameInstance)
     {
-        saveGameInstance->sessionId = value;
+        saveGameInstance->sessionId = sessionId;
+        saveGameInstance->redirectUrl = redirectUrl;
         UGameplayStatics::SaveGameToSlot(saveGameInstance, TEXT("Web3AuthDataSlot"), 0);
     }
 }
 
-FString UKeyStoreUtils::Get() {
+FString UKeyStoreUtils::GetSessionId() {
     UWeb3StorageAdapter* saveGameInstance = Cast<UWeb3StorageAdapter>(UGameplayStatics::LoadGameFromSlot(TEXT("Web3AuthDataSlot"), 0));
 
     if (saveGameInstance)
@@ -32,6 +33,17 @@ void UKeyStoreUtils::Clear() {
     if (saveGameInstance)
     {
         saveGameInstance->sessionId = "";
+        saveGameInstance->redirectUrl = "";
         UGameplayStatics::SaveGameToSlot(saveGameInstance, TEXT("Web3AuthDataSlot"), 0);
     }
+}
+
+FString UKeyStoreUtils::GetRedirectUrl() {
+    UWeb3StorageAdapter* saveGameInstance = Cast<UWeb3StorageAdapter>(UGameplayStatics::LoadGameFromSlot(TEXT("Web3AuthDataSlot"), 0));
+
+    if (saveGameInstance)
+    {
+        return saveGameInstance->redirectUrl;
+    }
+    return "";
 }
