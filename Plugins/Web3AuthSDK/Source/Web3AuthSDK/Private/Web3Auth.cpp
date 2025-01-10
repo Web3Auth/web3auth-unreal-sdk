@@ -969,7 +969,7 @@ void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime, bool i
     request.data = jsonString;
     request.key = ephemPublicKey;
     request.signature = sig;
-    request.timeout = FMath::Min(sessionTime, 7 * 86400);
+    request.timeout = FMath::Min(sessionTime, 30 * 86400);
     request.allowedOrigin = allowedOrigin;
 
     web3AuthApi->CreateSession(request, [this, newSessionKey, isWalletService](const FString& response)
