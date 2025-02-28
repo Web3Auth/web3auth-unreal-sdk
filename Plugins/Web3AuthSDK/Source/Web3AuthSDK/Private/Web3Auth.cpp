@@ -114,10 +114,14 @@ void UWeb3Auth::processRequest(FString path, FLoginParams* loginParams = nullptr
 
 #if !PLATFORM_ANDROID && !PLATFORM_IOS
 	FString redirectUrl = startLocalWebServer();
+    this->redirecturl = redirectUrl.Replace(TEXT("/complete"), TEXT(""));;
 	initParams->SetStringField("redirectUrl", redirectUrl);
 #else
 	if (web3AuthOptions.redirectUrl != "")
+    {
 		initParams->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
+        this->redirecturl = web3AuthOptions.redirectUrl;
+    }
 #endif
 
     switch (web3AuthOptions.buildEnv) {
@@ -233,27 +237,27 @@ void UWeb3Auth::processRequest(FString path, FLoginParams* loginParams = nullptr
 	FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
 
 	if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
-        web3AuthOptions.sdkUrl = "https://staging-auth.web3auth.io/v8";
+        web3AuthOptions.sdkUrl = "https://staging-auth.web3auth.io/v9";
     }
     else if(web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
         web3AuthOptions.sdkUrl = "https://develop-auth.web3auth.io";
     } else {
-        web3AuthOptions.sdkUrl = "https://auth.web3auth.io/v8";
+        web3AuthOptions.sdkUrl = "https://auth.web3auth.io/v9";
     }
 
     if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
-        web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v2";
+        web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v3";
     } else if (web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
         web3AuthOptions.walletSdkUrl = "https://develop-wallet.web3auth.io";
     } else {
-        web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v2";
+        web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v3";
     }
 
-    createSession(json, 600, false);
+    createSession(json, 600, false, "*");
 }
 
 void UWeb3Auth::launchWalletServices(FChainConfig chainConfig) {
-    this->sessionId = keyStoreUtils->Get();
+    this->sessionId = keyStoreUtils->GetSessionId();
     if (!this->sessionId.IsEmpty()) {
         TSharedPtr <FJsonObject> paramMap = MakeShareable(new FJsonObject);
 
@@ -296,10 +300,14 @@ void UWeb3Auth::launchWalletServices(FChainConfig chainConfig) {
 
 #if !PLATFORM_ANDROID && !PLATFORM_IOS
         FString redirectUrl = startLocalWebServer();
+        this->redirecturl = redirectUrl.Replace(TEXT("/complete"), TEXT(""));;
         initParams->SetStringField("redirectUrl", redirectUrl);
 #else
         if (web3AuthOptions.redirectUrl != "")
+        {
             initParams->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
+            this->redirecturl = web3AuthOptions.redirectUrl;
+        }
 #endif
 
         switch (web3AuthOptions.buildEnv) {
@@ -371,14 +379,14 @@ void UWeb3Auth::launchWalletServices(FChainConfig chainConfig) {
         FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
 
         if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
-            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v2";
+            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v3";
         } else if (web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
             web3AuthOptions.walletSdkUrl = "https://develop-wallet.web3auth.io";
         } else {
-            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v2";
+            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v3";
         }
 
-        createSession(json, 86400, true);
+        createSession(json, 86400, true, "*");
     } else {
         UE_LOG(LogTemp, Error, TEXT("SessionId not found. Please login first."));
     }
@@ -395,7 +403,7 @@ void UWeb3Auth::processLogout() {
 
 void UWeb3Auth::enableMFA(FLoginParams loginParams) {
     UE_LOG(LogTemp, Warning, TEXT("enableMFA called"));
-    this->sessionId = keyStoreUtils->Get();
+    this->sessionId = keyStoreUtils->GetSessionId();
     if (!this->sessionId.IsEmpty()) {
         this->processRequest("enable_mfa", &loginParams);
     } else {
@@ -405,7 +413,7 @@ void UWeb3Auth::enableMFA(FLoginParams loginParams) {
 
 void UWeb3Auth::request(FChainConfig chainConfig, FString method, TArray<FString> requestParams, FString path)
 {
-	this->sessionId = keyStoreUtils->Get();
+	this->sessionId = keyStoreUtils->GetSessionId();
 	if (!this->sessionId.IsEmpty())
 	{
 		TSharedPtr <FJsonObject> paramMap = MakeShareable(new FJsonObject);
@@ -449,10 +457,14 @@ void UWeb3Auth::request(FChainConfig chainConfig, FString method, TArray<FString
 
 #if !PLATFORM_ANDROID && !PLATFORM_IOS
         FString redirectUrl = startLocalWebServer();
+        this->redirecturl = redirectUrl.Replace(TEXT("/complete"), TEXT(""));;
         initParams->SetStringField("redirectUrl", redirectUrl);
 #else
         if (web3AuthOptions.redirectUrl != "")
+        {
             initParams->SetStringField("redirectUrl", web3AuthOptions.redirectUrl);
+            this->redirecturl = web3AuthOptions.redirectUrl;
+        }
 #endif
 
         switch (web3AuthOptions.buildEnv) {
@@ -507,11 +519,11 @@ void UWeb3Auth::request(FChainConfig chainConfig, FString method, TArray<FString
         FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
 
         if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
-            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v2";
+            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v3";
         } else if (web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
             web3AuthOptions.walletSdkUrl = "https://develop-wallet.web3auth.io";
         } else {
-            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v2";
+            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v3";
         }
 
         //createSession(json, 86400, true);
@@ -639,23 +651,21 @@ void UWeb3Auth::setResultUrl(FString hash) {
     //UE_LOG(LogTemp, Warning, TEXT("substringBeforeBrace: %s"), *substringBeforeBrace);
 
 	if(bIsRequestResponse) {
-		try
-		{
-			TSharedPtr<FJsonObject> jsonObject;
-			TSharedRef<TJsonReader<>> reader = TJsonReaderFactory<>::Create(substringBeforeBrace);
-			if (FJsonSerializer::Deserialize(reader, jsonObject) && jsonObject.IsValid())
-			{
-				signResponse.success = jsonObject->GetBoolField(TEXT("success"));
-				signResponse.result = jsonObject->GetStringField(TEXT("result"));
-				signResponse.error = jsonObject->GetStringField(TEXT("error"));
-				//UE_LOG(LogTemp, Warning, TEXT("signResponse - success: %d, result: %s, error: %s"), signResponse.success, *signResponse.result, *signResponse.error);
-				setSignResponse(signResponse);
-			}
-		}
-		catch (const std::exception& ex)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Failed to parse SignResponse JSON"));
-		}
+
+        TSharedPtr<FJsonObject> jsonObject;
+        TSharedRef<TJsonReader<>> reader = TJsonReaderFactory<>::Create(substringBeforeBrace);
+        if (FJsonSerializer::Deserialize(reader, jsonObject) && jsonObject.IsValid())
+        {
+            signResponse.success = jsonObject->GetBoolField(TEXT("success"));
+            signResponse.result = jsonObject->GetStringField(TEXT("result"));
+            signResponse.error = jsonObject->GetStringField(TEXT("error"));
+            UE_LOG(LogTemp, Warning, TEXT("signResponse - success: %d, result: %s, error: %s"), signResponse.success, *signResponse.result, *signResponse.error);
+            setSignResponse(signResponse);
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Failed to parse SignResponse JSON"));
+        }
 		bIsRequestResponse = false;
 		return;
 	}
@@ -667,10 +677,11 @@ void UWeb3Auth::setResultUrl(FString hash) {
     	FSessionResponse response;
         jsonObject->TryGetStringField(TEXT("sessionId"), response.sessionId);
         //UE_LOG(LogTemp, Warning, TEXT("Session-ID: %s"), *response.sessionId);
-        keyStoreUtils->Assign(*response.sessionId);
+        keyStoreUtils->Assign(*response.sessionId, *this->redirecturl);
         this->sessionId = *response.sessionId;
     }
 
+    //UE_LOG(LogTemp, Warning, TEXT("authorizeSession called: Session-ID: %s"), "authorizeSession");
     authorizeSession();
 }
 
@@ -827,13 +838,20 @@ FUserInfo UWeb3Auth::getUserInfo() {
 }
 
 void UWeb3Auth::authorizeSession() {
-    this->sessionId = keyStoreUtils->Get();
+    this->sessionId = keyStoreUtils->GetSessionId();
 	if (!this->sessionId.IsEmpty()) {
+        //UE_LOG(LogTemp, Warning, TEXT("Inside  authorizeSession Session-ID: %s"), *this->sessionId);
 		FString pubKey = crypto->generatePublicKey(this->sessionId);
 		FString session = this->sessionId;
-		web3AuthApi->AuthorizeSession(pubKey, [session, this](const FStoreApiResponse& response)
+        FString origin = this->redirecturl;
+        //UE_LOG(LogTemp, Warning, TEXT("In authorizeSession Session-ID: %s"), *session);
+        //UE_LOG(LogTemp, Warning, TEXT("In authorizeSession Origin: %s"), *origin);
+        if(origin.IsEmpty()) {
+            origin = keyStoreUtils->GetRedirectUrl();
+        }
+		web3AuthApi->AuthorizeSession(pubKey, origin, [session, this](const FStoreApiResponse& response)
 			{
-				//UE_LOG(LogTemp, Log, TEXT("Response: %s"), *response.message);
+				UE_LOG(LogTemp, Log, TEXT("AuthorizeSession Response: %s"), *response.message);
 
 				FShareMetaData shareMetaData;
 
@@ -873,11 +891,11 @@ void UWeb3Auth::authorizeSession() {
 }
 
 void UWeb3Auth::sessionTimeout() {
-    this->sessionId = keyStoreUtils->Get();
+    this->sessionId = keyStoreUtils->GetSessionId();
 	if (!this->sessionId.IsEmpty()) {
 		FString pubKey = crypto->generatePublicKey(this->sessionId);
-
-		web3AuthApi->AuthorizeSession(pubKey, [pubKey, this](const FStoreApiResponse& response)
+        FString origin = keyStoreUtils->GetRedirectUrl();
+		web3AuthApi->AuthorizeSession(pubKey, origin, [pubKey, this](const FStoreApiResponse& response)
 			{
 				FShareMetaData shareMetaData;
 
@@ -915,7 +933,7 @@ void UWeb3Auth::sessionTimeout() {
 	}
 }
 
-void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime, bool isWalletService) {
+void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime, bool isWalletService, const FString& allowedOrigin) {
     //UE_LOG(LogTemp, Log, TEXT("CreateSessionJson: %s"), *jsonData);
     FString newSessionKey = crypto->generateRandomSessionKey();
     FString ephemPublicKey = crypto->generatePublicKey(newSessionKey);
@@ -951,7 +969,8 @@ void UWeb3Auth::createSession(const FString& jsonData, int32 sessionTime, bool i
     request.data = jsonString;
     request.key = ephemPublicKey;
     request.signature = sig;
-    request.timeout = FMath::Min(sessionTime, 7 * 86400);
+    request.timeout = FMath::Min(sessionTime, 30 * 86400);
+    request.allowedOrigin = allowedOrigin;
 
     web3AuthApi->CreateSession(request, [this, newSessionKey, isWalletService](const FString& response)
     	{
@@ -1047,7 +1066,7 @@ void UWeb3Auth::handleCreateSessionResponse(const FString& path, const FString& 
         loginIdObject->SetStringField(TEXT("loginId"), newSessionKey);
 
         if(isWalletService) {
-            this->sessionId = keyStoreUtils->Get();
+            this->sessionId = keyStoreUtils->GetSessionId();
             loginIdObject->SetStringField(TEXT("sessionId"), this->sessionId);
             loginIdObject->SetStringField(TEXT("platform"), "unreal");
         }

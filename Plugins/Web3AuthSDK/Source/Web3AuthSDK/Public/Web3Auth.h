@@ -609,10 +609,10 @@ struct FWeb3AuthOptions
 		FString redirectUrl;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString sdkUrl = "https://sdk.openlogin.com/v8";
+		FString sdkUrl = "https://sdk.openlogin.com/v9";
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-        FString walletSdkUrl = "https://wallet.web3auth.io/v1";
+        FString walletSdkUrl = "https://wallet.web3auth.io/v3";
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FNetwork network;
@@ -747,6 +747,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FString sessionId = FString();
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    FString redirecturl = FString();
+
 	UFUNCTION(BlueprintCallable)
 		void setOptions(FWeb3AuthOptions web3authOptions);
 
@@ -823,7 +826,7 @@ private:
 
 	void authorizeSession();
 	void sessionTimeout();
-	void createSession(const FString& jsonData, int32 sessionTime, bool isWalletService);
+	void createSession(const FString& jsonData, int32 sessionTime, bool isWalletService, const FString& allowedOrigin);
 void handleCreateSessionResponse(const FString& path, const FString& newSessionKey, bool isWalletService);
     void fetchProjectConfig();
 	FWhiteLabelData mergeWhiteLabelData(const FWhiteLabelData& other);
