@@ -11,13 +11,13 @@
 // Need to keep a pointer to self later.
 // How this works is:
 // Android:
-// 1) Just before opening BrowserView, assign thiz to the current instance. Code then moves from C++ to Java.
+// 1) Just before opening BrowserView, assign this to the current instance. Code then moves from C++ to Java.
 // 2) When returning from BrowserView, onDeepLink is called. Code returns to C++ from Java
-// 3) In the implementation of onDeepLink, thiz is used to call the c++ method (setResultUrl) on this instance.
+// 3) In the implementation of onDeepLink, this is used to call the c++ method (setResultUrl) on this instance.
 // IOS:
-//  1) Just before opening WebAuthenticate, assign thiz to the current instance. Code then moves from C++ to ObjC.
+//  1) Just before opening WebAuthenticate, assign this to the current instance. Code then moves from C++ to ObjC.
 //  2) When returning from WebAuthenticate, callBackFromWebAuthenticateIOS is called. Code returns to C++ from ObjC.
-//  3) In the implementation of callBackFromWebAuthenticateIOS, thiz is used to call the c++ method (setResultUrl) on this instance.
+//  3) In the implementation of callBackFromWebAuthenticateIOS, this is used to call the c++ method (setResultUrl) on this instance.
 
 UWeb3Auth* thiz_instance = nullptr;
 
@@ -75,9 +75,10 @@ void UWeb3Auth::processRequest(FString path, FLoginParams* loginParams = nullptr
 
 
 	TSharedPtr<FJsonObject> initParams = MakeShareable(new FJsonObject);
+	UE_LOG(LogTemp, Warning, TEXT("clientId: %s"), *web3AuthOptions.clientId);
 	initParams->SetStringField("clientId", web3AuthOptions.clientId);
 
-	switch (web3AuthOptions.network) {
+	switch (web3AuthOptions.web3AuthNetwork) {
 		case FNetwork::MAINNET:
 			initParams->SetStringField("network", "mainnet");
 			break;
@@ -124,7 +125,7 @@ void UWeb3Auth::processRequest(FString path, FLoginParams* loginParams = nullptr
     }
 #endif
 
-    switch (web3AuthOptions.buildEnv) {
+    switch (web3AuthOptions.authBuildEnv) {
         case FBuildEnv::PRODUCTION:
         	initParams->SetStringField("buildEnv", "production");
         	break;
@@ -164,22 +165,29 @@ void UWeb3Auth::processRequest(FString path, FLoginParams* loginParams = nullptr
     FJsonObjectConverter::UStructToJsonObjectString(FChainConfig::StaticStruct(), &web3AuthOptions.chainConfig, chainConfigOutput);
     initParams->SetStringField("chainConfig", chainConfigOutput);
 
-	if (!web3AuthOptions.loginConfig.IsEmpty()) {
-		FString output;
+	if (!web3AuthOptions.authConnectionConfig.IsEmpty())
+	{
+		TArray<TSharedPtr<FJsonValue>> jsonArray;
 
-		TSharedPtr<FJsonObject> loginConfigMap = MakeShareable(new FJsonObject);
-
-		for (auto item : web3AuthOptions.loginConfig) {
-			TSharedPtr<FJsonObject> loginConfigObject = MakeShareable(new FJsonObject);
-			FJsonObjectConverter::UStructToJsonObject(FLoginConfigItem::StaticStruct(), &item.Value, loginConfigObject.ToSharedRef(), 0, 0);
-
-			loginConfigMap->SetObjectField(item.Key, loginConfigObject);
+		for (const FAuthConnectionConfig& Config : web3AuthOptions.authConnectionConfig)
+		{
+			TSharedPtr<FJsonObject> JsonObject = MakeShared<FJsonObject>();
+			if (FJsonObjectConverter::UStructToJsonObject(FAuthConnectionConfig::StaticStruct(), &Config, JsonObject.ToSharedRef(), 0, 0))
+			{
+				jsonArray.Add(MakeShared<FJsonValueObject>(JsonObject));
+			}
 		}
 
-		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&output);
-		FJsonSerializer::Serialize(loginConfigMap.ToSharedRef(), Writer);
+		FString Output;
+		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Output);
+		FJsonSerializer::Serialize(jsonArray, Writer);
 
-		initParams->SetStringField("loginConfig", output);
+		initParams->SetStringField("authConnectionConfig", Output);
+	}
+	else
+	{
+		FString emptyArrayJson = TEXT("[]");
+		initParams->SetStringField("authConnectionConfig", emptyArrayJson);
 	}
 
 	paramMap->SetObjectField("options", initParams.ToSharedRef());
@@ -236,27 +244,27 @@ void UWeb3Auth::processRequest(FString path, FLoginParams* loginParams = nullptr
     TSharedRef< TJsonWriter<> > jsonWriter = TJsonWriterFactory<>::Create(&json);
 	FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
 
-	if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
-        web3AuthOptions.sdkUrl = "https://staging-auth.web3auth.io/v9";
+	if (web3AuthOptions.authBuildEnv == FBuildEnv::STAGING) {
+        web3AuthOptions.sdkUrl = "https://staging-auth.web3auth.io/v10";
     }
-    else if(web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
+    else if(web3AuthOptions.authBuildEnv == FBuildEnv::TESTING) {
         web3AuthOptions.sdkUrl = "https://develop-auth.web3auth.io";
     } else {
-        web3AuthOptions.sdkUrl = "https://auth.web3auth.io/v9";
+        web3AuthOptions.sdkUrl = "https://auth.web3auth.io/v10";
     }
 
-    if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
-        web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v3";
-    } else if (web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
+    if (web3AuthOptions.authBuildEnv == FBuildEnv::STAGING) {
+        web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v4";
+    } else if (web3AuthOptions.authBuildEnv == FBuildEnv::TESTING) {
         web3AuthOptions.walletSdkUrl = "https://develop-wallet.web3auth.io";
     } else {
-        web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v3";
+        web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v4";
     }
 
     createSession(json, 600, false, "*");
 }
 
-void UWeb3Auth::launchWalletServices(FChainConfig chainConfig) {
+void UWeb3Auth::showWalletUI(const TArray<FChainConfig>& chainConfig, const FString& chainId) {
     this->sessionId = keyStoreUtils->GetSessionId();
     if (!this->sessionId.IsEmpty()) {
         TSharedPtr <FJsonObject> paramMap = MakeShareable(new FJsonObject);
@@ -264,7 +272,7 @@ void UWeb3Auth::launchWalletServices(FChainConfig chainConfig) {
         TSharedPtr <FJsonObject> initParams = MakeShareable(new FJsonObject);
         initParams->SetStringField("clientId", web3AuthOptions.clientId);
 
-        switch (web3AuthOptions.network) {
+        switch (web3AuthOptions.web3AuthNetwork) {
             case FNetwork::MAINNET:
                 initParams->SetStringField("network", "mainnet");
                 break;
@@ -310,7 +318,7 @@ void UWeb3Auth::launchWalletServices(FChainConfig chainConfig) {
         }
 #endif
 
-        switch (web3AuthOptions.buildEnv) {
+        switch (web3AuthOptions.authBuildEnv) {
             case FBuildEnv::PRODUCTION:
                 initParams->SetStringField("buildEnv", "production");
                 break;
@@ -347,29 +355,47 @@ void UWeb3Auth::launchWalletServices(FChainConfig chainConfig) {
     		initParams->SetStringField("originData", jsonString);
     	}
 
-        FString chainConfigOutput;
-        FJsonObjectConverter::UStructToJsonObjectString(FChainConfig::StaticStruct(), &chainConfig, chainConfigOutput);
-        initParams->SetStringField("chainConfig", chainConfigOutput);
+    	TArray<TSharedPtr<FJsonValue>> JsonArray;
 
-        if (!web3AuthOptions.loginConfig.IsEmpty()) {
-            FString output;
+    	for (const FChainConfig& Config : chainConfig)
+    	{
+    		TSharedPtr<FJsonObject> JsonObject = MakeShared<FJsonObject>();
+    		if (FJsonObjectConverter::UStructToJsonObject(FChainConfig::StaticStruct(), &Config, JsonObject.ToSharedRef(), 0, 0))
+    		{
+    			JsonArray.Add(MakeShared<FJsonValueObject>(JsonObject));
+    		}
+    	}
+    	FString chainConfigOutput;
+    	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&chainConfigOutput);
+    	FJsonSerializer::Serialize(JsonArray, Writer);
+    	initParams->SetStringField("chains", chainConfigOutput);
 
-            TSharedPtr <FJsonObject> loginConfigMap = MakeShareable(new FJsonObject);
+    	initParams->SetStringField("chainId", chainId);
 
-            for (auto item: web3AuthOptions.loginConfig) {
-                TSharedPtr <FJsonObject> loginConfigObject = MakeShareable(new FJsonObject);
-                FJsonObjectConverter::UStructToJsonObject(FLoginConfigItem::StaticStruct(),
-                                                          &item.Value,
-                                                          loginConfigObject.ToSharedRef(), 0, 0);
+    	if (!web3AuthOptions.authConnectionConfig.IsEmpty())
+    	{
+    		TArray<TSharedPtr<FJsonValue>> JsonArray;
 
-                loginConfigMap->SetObjectField(item.Key, loginConfigObject);
-            }
+    		for (const FAuthConnectionConfig& Config : web3AuthOptions.authConnectionConfig)
+    		{
+    			TSharedPtr<FJsonObject> JsonObject = MakeShared<FJsonObject>();
+    			if (FJsonObjectConverter::UStructToJsonObject(FAuthConnectionConfig::StaticStruct(), &Config, JsonObject.ToSharedRef(), 0, 0))
+    			{
+    				JsonArray.Add(MakeShared<FJsonValueObject>(JsonObject));
+    			}
+    		}
 
-            TSharedRef <TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&output);
-            FJsonSerializer::Serialize(loginConfigMap.ToSharedRef(), Writer);
+    		FString Output;
+    		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Output);
+    		FJsonSerializer::Serialize(JsonArray, Writer);
 
-            initParams->SetStringField("loginConfig", output);
-        }
+    		initParams->SetStringField("authConnectionConfig", Output);
+    	}
+    	else
+    	{
+    		FString emptyArrayJson = TEXT("[]");
+    		initParams->SetStringField("authConnectionConfig", emptyArrayJson);
+    	}
 
         paramMap->SetObjectField("options", initParams.ToSharedRef());
         paramMap->SetStringField("actionType", "login");
@@ -378,12 +404,12 @@ void UWeb3Auth::launchWalletServices(FChainConfig chainConfig) {
         TSharedRef <TJsonWriter<>> jsonWriter = TJsonWriterFactory<>::Create(&json);
         FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
 
-        if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
-            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v3";
-        } else if (web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
+        if (web3AuthOptions.authBuildEnv == FBuildEnv::STAGING) {
+            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v4";
+        } else if (web3AuthOptions.authBuildEnv == FBuildEnv::TESTING) {
             web3AuthOptions.walletSdkUrl = "https://develop-wallet.web3auth.io";
         } else {
-            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v3";
+            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v4";
         }
 
         createSession(json, 86400, true, "*");
@@ -421,7 +447,7 @@ void UWeb3Auth::request(FChainConfig chainConfig, FString method, TArray<FString
         TSharedPtr <FJsonObject> initParams = MakeShareable(new FJsonObject);
         initParams->SetStringField("clientId", web3AuthOptions.clientId);
 
-        switch (web3AuthOptions.network) {
+        switch (web3AuthOptions.web3AuthNetwork) {
             case FNetwork::MAINNET:
                 initParams->SetStringField("network", "mainnet");
                 break;
@@ -467,7 +493,7 @@ void UWeb3Auth::request(FChainConfig chainConfig, FString method, TArray<FString
         }
 #endif
 
-        switch (web3AuthOptions.buildEnv) {
+        switch (web3AuthOptions.authBuildEnv) {
             case FBuildEnv::PRODUCTION:
                 initParams->SetStringField("buildEnv", "production");
                 break;
@@ -491,25 +517,30 @@ void UWeb3Auth::request(FChainConfig chainConfig, FString method, TArray<FString
         FJsonObjectConverter::UStructToJsonObjectString(FChainConfig::StaticStruct(), &chainConfig, chainConfigOutput);
         initParams->SetStringField("chainConfig", chainConfigOutput);
 
-        if (!web3AuthOptions.loginConfig.IsEmpty()) {
-            FString output;
+		if (!web3AuthOptions.authConnectionConfig.IsEmpty())
+		{
+			TArray<TSharedPtr<FJsonValue>> JsonArray;
 
-            TSharedPtr <FJsonObject> loginConfigMap = MakeShareable(new FJsonObject);
+			for (const FAuthConnectionConfig& Config : web3AuthOptions.authConnectionConfig)
+			{
+				TSharedPtr<FJsonObject> JsonObject = MakeShared<FJsonObject>();
+				if (FJsonObjectConverter::UStructToJsonObject(FAuthConnectionConfig::StaticStruct(), &Config, JsonObject.ToSharedRef(), 0, 0))
+				{
+					JsonArray.Add(MakeShared<FJsonValueObject>(JsonObject));
+				}
+			}
 
-            for (auto item: web3AuthOptions.loginConfig) {
-                TSharedPtr <FJsonObject> loginConfigObject = MakeShareable(new FJsonObject);
-                FJsonObjectConverter::UStructToJsonObject(FLoginConfigItem::StaticStruct(),
-                                                          &item.Value,
-                                                          loginConfigObject.ToSharedRef(), 0, 0);
+			FString Output;
+			TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Output);
+			FJsonSerializer::Serialize(JsonArray, Writer);
 
-                loginConfigMap->SetObjectField(item.Key, loginConfigObject);
-            }
-
-            TSharedRef <TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&output);
-            FJsonSerializer::Serialize(loginConfigMap.ToSharedRef(), Writer);
-
-            initParams->SetStringField("loginConfig", output);
-        }
+			initParams->SetStringField("authConnectionConfig", Output);
+		}
+		else
+		{
+			FString emptyArrayJson = TEXT("[]");
+			initParams->SetStringField("authConnectionConfig", emptyArrayJson);
+		}
 
         paramMap->SetObjectField("options", initParams.ToSharedRef());
         //paramMap->SetStringField("actionType", "login");
@@ -518,12 +549,12 @@ void UWeb3Auth::request(FChainConfig chainConfig, FString method, TArray<FString
         TSharedRef <TJsonWriter<>> jsonWriter = TJsonWriterFactory<>::Create(&json);
         FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
 
-        if (web3AuthOptions.buildEnv == FBuildEnv::STAGING) {
-            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v3";
-        } else if (web3AuthOptions.buildEnv == FBuildEnv::TESTING) {
+        if (web3AuthOptions.authBuildEnv == FBuildEnv::STAGING) {
+            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io4";
+        } else if (web3AuthOptions.authBuildEnv == FBuildEnv::TESTING) {
             web3AuthOptions.walletSdkUrl = "https://develop-wallet.web3auth.io";
         } else {
-            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v3";
+            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v4";
         }
 
         //createSession(json, 86400, true);
@@ -853,8 +884,8 @@ void UWeb3Auth::authorizeSession() {
 		FString pubKey = crypto->generatePublicKey(this->sessionId);
 		FString session = this->sessionId;
         FString origin = this->redirecturl;
-        //UE_LOG(LogTemp, Warning, TEXT("In authorizeSession Session-ID: %s"), *session);
-        //UE_LOG(LogTemp, Warning, TEXT("In authorizeSession Origin: %s"), *origin);
+        //UE_LOG(LogTemp, Warning, TEXT ("In authorizeSession Session-ID: %s"), *session);
+        //UE_LOG(LogTemp, Warning, TEXT ("In authorizeSession Origin: %s"), *origin);
         if(origin.IsEmpty()) {
             origin = keyStoreUtils->GetRedirectUrl();
         }
@@ -996,7 +1027,7 @@ void UWeb3Auth::fetchProjectConfig()
 {
 	FString network;
 
-	switch (web3AuthOptions.network)
+	switch (web3AuthOptions.web3AuthNetwork)
 	{
 	case FNetwork::MAINNET:
 		network = "mainnet";

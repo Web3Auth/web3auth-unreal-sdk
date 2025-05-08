@@ -44,7 +44,7 @@ enum class FPrompt : uint8
 };
 
 UENUM(BlueprintType)
-enum class FProvider : uint8
+enum class FAuthConnection : uint8
 {
 	GOOGLE,
 	FACEBOOK,
@@ -61,30 +61,7 @@ enum class FProvider : uint8
 	WECHAT,
 	EMAIL_PASSWORDLESS,
 	EMAIL_PASSWORD,
-	JWT,
-    SMS_PASSWORDLESS,
-    FARCASTER
-};
-
-UENUM(BlueprintType)
-enum class FTypeOfLogin : uint8
-{
-	GOOGLE,
-	FACEBOOK,
-	REDDIT,
-	DISCORD,
-	TWITCH,
-	APPLE,
-	LINE,
-	GITHUB,
-	KAKAO,
-	LINKEDIN,
-	TWITTER,
-	WEIBO,
-	WECHAT,
-	EMAIL_PASSWORDLESS,
-	EMAIL_PASSWORD,
-	JWT,
+	CUSTOM,
     SMS_PASSWORDLESS,
     FARCASTER
 };
@@ -290,15 +267,15 @@ struct WEB3AUTHSDK_API FExtraLoginOptions
 };
 
 USTRUCT(BlueprintType)
-struct FLoginConfigItem
+struct FAuthConnectionConfig
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString verifier;
+		FString authConnectionId;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString typeOfLogin;
+		FString authConnection;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString name;
@@ -332,16 +309,16 @@ struct FLoginConfigItem
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		bool showOnMobile;
 
-	FLoginConfigItem() {};
+	FAuthConnectionConfig() {};
 
-	bool operator== (const FLoginConfigItem& other) {
+	bool operator== (const FAuthConnectionConfig& other) {
 		return other.clientId == clientId;
 	}
 
 };
 
 
-FORCEINLINE uint32 GetTypeHash(const FLoginConfigItem& other) {
+FORCEINLINE uint32 GetTypeHash(const FAuthConnectionConfig& other) {
 	return GetTypeHash(other.clientId);
 }
 
@@ -352,7 +329,7 @@ struct FLoginParams
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString loginProvider;
+		FString authConnection;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString dappShare;
@@ -386,8 +363,8 @@ struct FLoginParams
 		if (!dappShare.IsEmpty())
 			output.SetStringField("dappShare", dappShare);
 
-		if (!loginProvider.IsEmpty())
-			output.SetStringField("loginProvider", loginProvider);
+		if (!authConnection.IsEmpty())
+			output.SetStringField("authConnection", authConnection);
 
 		if (!redirectUrl.IsEmpty())
 			output.SetStringField("redirectUrl", redirectUrl);
@@ -418,16 +395,16 @@ struct FUserInfo
 		FString profileImage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString aggregateVerifier;
+		FString groupedAuthConnectionId;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString verifier;
+		FString authConnectionId;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString verifierId;
+		FString userId;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString typeOfLogin;
+		FString authConnection;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString dappShare;
@@ -450,10 +427,10 @@ struct FUserInfo
     		return email.IsEmpty()
     			&& name.IsEmpty()
     			&& profileImage.IsEmpty()
-    			&& aggregateVerifier.IsEmpty()
-    			&& verifier.IsEmpty()
-    			&& verifierId.IsEmpty()
-    			&& typeOfLogin.IsEmpty()
+    			&& groupedAuthConnectionId.IsEmpty()
+    			&& authConnectionId.IsEmpty()
+    			&& userId.IsEmpty()
+    			&& authConnection.IsEmpty()
     			&& dappShare.IsEmpty()
     			&& idToken.IsEmpty()
     			&& oAuthIdToken.IsEmpty()
@@ -462,7 +439,7 @@ struct FUserInfo
 
 	FString ToString() const {
 		return FString::Printf(TEXT("email: %s, name: %s, profileImage: %s, aggregateVerifier: %s, verifier: %s, verifierId: %s, typeOfLogin: %s, dappShare: %s, idToken: %s, oAuthIdToken: %s, oAuthAccessToken: %s, isMfaEnabled: %d"),
-			*email, *name, *profileImage, *aggregateVerifier, *verifier, *verifierId, *typeOfLogin, *dappShare, *idToken, *oAuthIdToken, *oAuthAccessToken, isMfaEnabled);
+			*email, *name, *profileImage, *groupedAuthConnectionId, *authConnectionId, *userId, *authConnection, *dappShare, *idToken, *oAuthIdToken, *oAuthAccessToken, isMfaEnabled);
 	}
 };
 
@@ -609,22 +586,22 @@ struct FWeb3AuthOptions
 		FString redirectUrl;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString sdkUrl = "https://sdk.openlogin.com/v9";
+		FString sdkUrl = "https://auth.web3auth.io/v10";
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-        FString walletSdkUrl = "https://wallet.web3auth.io/v3";
+        FString walletSdkUrl = "https://wallet.web3auth.io/v4";
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FNetwork network;
+		FNetwork web3AuthNetwork;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-        FBuildEnv buildEnv;
+        FBuildEnv authBuildEnv;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FWhiteLabelData whiteLabel;
 
 	UPROPERTY(BlueprintReadWrite)
-		TMap<FString, FLoginConfigItem> loginConfig;
+		TArray<FAuthConnectionConfig> authConnectionConfig = {};
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
         FChainNamespace chainNamespace;
@@ -651,10 +628,10 @@ struct FWeb3AuthOptions
 		redirectUrl = other.redirectUrl;
 		sdkUrl = other.sdkUrl;
 		redirectUrl = other.redirectUrl;
-		network = other.network;
-		buildEnv = other.buildEnv;
+		web3AuthNetwork = other.web3AuthNetwork;
+		authBuildEnv = other.authBuildEnv;
 		whiteLabel = other.whiteLabel;
-		loginConfig = other.loginConfig;
+		authConnectionConfig = other.authConnectionConfig;
 		chainNamespace = other.chainNamespace;
         useCoreKitKey = other.useCoreKitKey;
         mfaSettings = other.mfaSettings;
@@ -763,7 +740,7 @@ public:
         void enableMFA(FLoginParams loginParams);
 
     UFUNCTION(BlueprintCallable)
-        void launchWalletServices(FChainConfig chainConfig);
+        void showWalletUI(const TArray<FChainConfig>& chainConfig, const FString& chainId);
 
 	UFUNCTION(BlueprintCallable)
 	void request(FChainConfig chainConfig, FString method, TArray<FString> requestParams, FString path = "wallet/request");
