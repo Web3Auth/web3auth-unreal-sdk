@@ -707,12 +707,21 @@ FString UWeb3Auth::startLocalWebServer() {
 
 	if (httpRouter.IsValid()) {
 
-		auto x = httpRouter->BindRoute(FHttpPath(TEXT("/auth")), EHttpServerRequestVerbs::VERB_GET,
-			[this](const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) { return requestAuthCallback(Request, OnComplete); });
+		auto x = httpRouter->BindRoute(
+		    FHttpPath(TEXT("/auth")),
+		    EHttpServerRequestVerbs::VERB_GET,
+		    FHttpRequestHandler::CreateLambda(
+			    [this](const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) {
+				    return requestAuthCallback(Request, OnComplete);
+			}));
 
-
-        auto y = httpRouter->BindRoute(FHttpPath(TEXT("/complete")), EHttpServerRequestVerbs::VERB_GET,
-			[this](const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) { return requestCompleteCallback(Request, OnComplete); });
+	    auto y = httpRouter->BindRoute(
+		    FHttpPath(TEXT("/complete")),
+		    EHttpServerRequestVerbs::VERB_GET,
+		    FHttpRequestHandler::CreateLambda(
+			    [this](const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) {
+				    return requestCompleteCallback(Request, OnComplete);
+			}));
 
 		httpRoutes.Add(TPairInitializer<TSharedPtr<IHttpRouter>, FHttpRouteHandle>(httpRouter, x));
 		httpRoutes.Add(TPairInitializer<TSharedPtr<IHttpRouter>, FHttpRouteHandle>(httpRouter, y));
