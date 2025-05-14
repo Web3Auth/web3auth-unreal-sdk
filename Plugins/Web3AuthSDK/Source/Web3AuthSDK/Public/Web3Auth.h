@@ -287,7 +287,7 @@ struct FAuthConnectionConfig
 		FString clientId;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString verifierSubIdentifier;
+		FString groupedAuthConnectionId;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString logoHover;
@@ -332,6 +332,12 @@ struct FLoginParams
 		FString authConnection;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FString authConnectionId;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FString groupedAuthConnectionId;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString dappShare;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -366,6 +372,12 @@ struct FLoginParams
 		if (!authConnection.IsEmpty())
 			output.SetStringField("authConnection", authConnection);
 
+		if (!authConnectionId.IsEmpty())
+			output.SetStringField("authConnectionId", authConnectionId);
+
+		if (!groupedAuthConnectionId.IsEmpty())
+			output.SetStringField("groupedAuthConnectionId", groupedAuthConnectionId);
+			
 		if (!redirectUrl.IsEmpty())
 			output.SetStringField("redirectUrl", redirectUrl);
 
@@ -579,46 +591,46 @@ struct FWeb3AuthOptions
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="Web3Auth Options")
 		FString clientId;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="Web3Auth Options")
 		FString redirectUrl;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="Web3Auth Options")
 		FString sdkUrl = "https://auth.web3auth.io/v10";
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="Web3Auth Options")
         FString walletSdkUrl = "https://wallet.web3auth.io/v4";
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="Web3Auth Options")
 		FNetwork web3AuthNetwork;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="Web3Auth Options")
         FBuildEnv authBuildEnv;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="Web3Auth Options")
 		FWhiteLabelData whiteLabel;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(Config, BlueprintReadWrite, Category="Web3Auth Options")
 		TArray<FAuthConnectionConfig> authConnectionConfig = {};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="Web3Auth Options")
         FChainNamespace chainNamespace;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="Web3Auth Options")
         bool useCoreKitKey;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="Web3Auth Options")
     	FMfaSettings mfaSettings;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="Web3Auth Options")
         int32 sessionTime = 86400;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="Web3Auth Options")
     	FChainConfig chainConfig;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="Web3Auth Options")
 		TMap<FString, FString> originData;
 
 	FWeb3AuthOptions() {};
@@ -638,6 +650,7 @@ struct FWeb3AuthOptions
         sessionTime = other.sessionTime;
         chainConfig = other.chainConfig;
 		originData = other.originData;
+		useCoreKitKey = other.useCoreKitKey;
 	}
 
 };
