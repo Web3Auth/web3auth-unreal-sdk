@@ -254,11 +254,11 @@ void UWeb3Auth::processRequest(FString path, FLoginParams* loginParams = nullptr
     }
 
     if (web3AuthOptions.authBuildEnv == FBuildEnv::STAGING) {
-        web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v4";
+        web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v5";
     } else if (web3AuthOptions.authBuildEnv == FBuildEnv::TESTING) {
         web3AuthOptions.walletSdkUrl = "https://develop-wallet.web3auth.io";
     } else {
-        web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v4";
+        web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v5";
     }
 
     createSession(json, 600, false, "*");
@@ -405,11 +405,11 @@ void UWeb3Auth::showWalletUI(const TArray<FChainConfig>& chainConfig, const FStr
         FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
 
         if (web3AuthOptions.authBuildEnv == FBuildEnv::STAGING) {
-            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v4";
+            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v5";
         } else if (web3AuthOptions.authBuildEnv == FBuildEnv::TESTING) {
             web3AuthOptions.walletSdkUrl = "https://develop-wallet.web3auth.io";
         } else {
-            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v4";
+            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v5";
         }
 
         createSession(json, 86400, true, "*");
@@ -550,11 +550,11 @@ void UWeb3Auth::request(FChainConfig chainConfig, FString method, TArray<FString
         FJsonSerializer::Serialize(paramMap.ToSharedRef(), jsonWriter);
 
         if (web3AuthOptions.authBuildEnv == FBuildEnv::STAGING) {
-            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io4";
+            web3AuthOptions.walletSdkUrl = "https://staging-wallet.web3auth.io/v5";
         } else if (web3AuthOptions.authBuildEnv == FBuildEnv::TESTING) {
             web3AuthOptions.walletSdkUrl = "https://develop-wallet.web3auth.io";
         } else {
-            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v4";
+            web3AuthOptions.walletSdkUrl = "https://wallet.web3auth.io/v5";
         }
 
         //createSession(json, 86400, true);
