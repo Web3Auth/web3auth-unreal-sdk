@@ -118,7 +118,7 @@ struct WEB3AUTHSDK_API FExtraLoginOptions
 		FString leeway;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString verifierIdField;
+		FString userIdField;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString max_age;
@@ -160,7 +160,7 @@ struct WEB3AUTHSDK_API FExtraLoginOptions
 		FString redirect_uri;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		bool isVerifierIdCaseSensitive;
+		bool isUserIdCaseSensitive;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FDisplay display;
@@ -182,8 +182,8 @@ struct WEB3AUTHSDK_API FExtraLoginOptions
 		if (!leeway.IsEmpty())
 			output->SetStringField("leeway", leeway);
 
-		if (!verifierIdField.IsEmpty())
-			output->SetStringField("verifierIdField", verifierIdField);
+		if (!userIdField.IsEmpty())
+			output->SetStringField("userIdField", userIdField);
 
 		if (!max_age.IsEmpty())
 			output->SetStringField("max_age", max_age);
@@ -229,7 +229,7 @@ struct WEB3AUTHSDK_API FExtraLoginOptions
 			return nullptr;
 		}
 
-		output->SetBoolField("isVerifierIdCaseSensitive", isVerifierIdCaseSensitive);
+		output->SetBoolField("isUserIdCaseSensitive", isUserIdCaseSensitive);
 
 		switch (display) {
 		case FDisplay::PAGE:
@@ -632,6 +632,9 @@ struct FWeb3AuthOptions
 
 	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="Web3Auth Options")
 		TMap<FString, FString> originData;
+		
+	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category="Web3Auth Options")
+            bool includeUserDataInToken;	
 
 	FWeb3AuthOptions() {};
 
@@ -650,7 +653,7 @@ struct FWeb3AuthOptions
         sessionTime = other.sessionTime;
         chainConfig = other.chainConfig;
 		originData = other.originData;
-		useCoreKitKey = other.useCoreKitKey;
+		includeUserDataInToken = other.includeUserDataInToken;	
 	}
 
 };
