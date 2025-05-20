@@ -782,10 +782,10 @@ public:
 	}
 
     UFUNCTION(BlueprintCallable)
-    		FString getPrivKey();
+    		FString getPrivateKey();
 
     UFUNCTION(BlueprintCallable)
-    		FString getEd25519PrivKey();
+    		FString getEd25519PrivateKey();
 
     UFUNCTION(BlueprintCallable)
     		FUserInfo getUserInfo();

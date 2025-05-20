@@ -851,7 +851,7 @@ void UWeb3Auth::callBackFromWebAuthenticateIOS(NSString* sResult) {
 #endif
 
 
-FString UWeb3Auth::getPrivKey() {
+FString UWeb3Auth::getPrivateKey() {
 	if (web3AuthResponse.coreKitKey.IsEmpty() || web3AuthResponse.privKey.IsEmpty()) {
 		return "";
 	}
@@ -859,7 +859,7 @@ FString UWeb3Auth::getPrivKey() {
 	return web3AuthOptions.useCoreKitKey ? web3AuthResponse.coreKitKey : web3AuthResponse.privKey;
 }
 
-FString UWeb3Auth::getEd25519PrivKey() {
+FString UWeb3Auth::getEd25519PrivateKey() {
 	if (web3AuthResponse.coreKitEd25519PrivKey.IsEmpty() || web3AuthResponse.ed25519PrivKey.IsEmpty()) {
 		return "";
 	}
